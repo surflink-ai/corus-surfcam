@@ -10,7 +10,7 @@ const PORT = process.env.PORT || 3800;
 const WSL_URL = 'https://www.worldsurfleague.com/posts/552432/its-on-day-3-of-the-btmi-barbados-surf-pro-and-live-like-zander-junior-pro-presented-by-diamonds-international?trigger=live';
 
 let cache = { data: null, ts: 0 };
-const CACHE_TTL = 10_000;
+const CACHE_TTL = 5_000; // 5s — WSL updates every ~30s
 
 // Heat timer tracking — server-side for accuracy
 let heatTimer = { heatId: null, startedAt: null };
@@ -105,10 +105,17 @@ function parseWSL(html) {
       surfers: Array.from(athletes).map(a => parseAthlete(a))
     };
 
-    // If this is the live heat, also set the heatId on liveHeat
-    if (status === 'live' && result.liveHeat) {
-      result.liveHeat.heatId = heatId;
-      result.liveHeat.heatNumber = i + 1;
+    // Track all live heats — pick the highest heat number (most recent)
+    if (status === 'live') {
+      if (!result.liveHeat || heat.number > result.liveHeat.heatNumber) {
+        const roundInfo = body.match(new RegExp(`(Round of \\d+|Quarterfinals|Semifinals|Final)\\s*-\\s*Heat\\s*${heat.number}\\s*LIVE`, 'i'));
+        result.liveHeat = {
+          round: roundInfo?.[1] || result.liveHeat?.round || '',
+          heatNumber: heat.number,
+          heatId,
+          surfers: Array.from(athletes).map(a => parseAthlete(a))
+        };
+      }
     }
 
     result.heats.push(heat);
