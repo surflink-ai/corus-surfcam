@@ -1,0 +1,13 @@
+{
+  "name": "corus-surfcam",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.0",
+    "jsdom": "^24.0.0"
+  }
+}

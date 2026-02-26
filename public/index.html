@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Corus Surf Cam — Live at Soup Bowl</title>
+<meta name="description" content="Live surf cam and WSL heat scores from Soup Bowl, Bathsheba, Barbados.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/corus_logo_white.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --glass: rgba(20,20,30,0.55);
+  --glass-heavy: rgba(10,14,24,0.75);
+  --glass-light: rgba(255,255,255,0.08);
+  --glass-border: rgba(255,255,255,0.12);
+  --glass-border-light: rgba(255,255,255,0.06);
+  --blur: 40px;
+  --blur-heavy: 60px;
+  --teal: #2dd4a8;
+  --teal-glow: rgba(45,212,168,0.25);
+  --coral: #ff6b6b;
+  --live-red: #ff3b30;
+  --gold: #ffd700;
+  --white: #ffffff;
+  --white-60: rgba(255,255,255,0.6);
+  --white-40: rgba(255,255,255,0.4);
+  --white-20: rgba(255,255,255,0.2);
+  --white-08: rgba(255,255,255,0.08);
+  --font-heading: 'Space Grotesk', -apple-system, sans-serif;
+  --font-body: 'DM Sans', -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', monospace;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --radius: 16px;
+  --radius-sm: 10px;
+  --radius-xs: 6px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: var(--font-body);
+  background: #000;
+  color: var(--white);
+  overflow: hidden;
+  height: 100dvh;
+  width: 100vw;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ── FULL SCREEN VIDEO ── */
+.video-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background: #000;
+}
+
+.video-layer iframe {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 177.78vh;
+  height: 56.25vw;
+  min-width: 100%;
+  min-height: 100%;
+  transform: translate(-50%, -50%);
+  border: none;
+}
+
+/* ── UI OVERLAY ── */
+.ui-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.ui-layer > * { pointer-events: auto; }
+
+/* ── TOP BAR ── */
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: calc(var(--safe-top) + 8px) 16px 8px;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, transparent 100%);
+}
+
+.top-left { display: flex; align-items: center; gap: 10px; }
+.logo { height: 22px; opacity: 0.9; filter: drop-shadow(0 1px 3px rgba(0,0,0,0.5)); }
+.logo-divider { width: 1px; height: 16px; background: var(--white-20); }
+.logo-label { font-family: var(--font-heading); font-size: 12px; font-weight: 500; color: var(--white-60); letter-spacing: 0.5px; text-transform: uppercase; }
+.top-right { display: flex; align-items: center; gap: 10px; }
+
+.live-pill {
+  display: flex; align-items: center; gap: 5px; padding: 4px 10px;
+  background: rgba(255,59,48,0.2); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,59,48,0.3); border-radius: 20px;
+  font-family: var(--font-mono); font-size: 10px; font-weight: 600; color: var(--live-red);
+  letter-spacing: 1.5px; text-transform: uppercase;
+}
+.live-pill .dot { width: 5px; height: 5px; background: var(--live-red); border-radius: 50%; animation: pulse-dot 1.5s ease-in-out infinite; box-shadow: 0 0 6px var(--live-red); }
+
+@keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+.scores-btn {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--glass); backdrop-filter: blur(var(--blur)); -webkit-backdrop-filter: blur(var(--blur));
+  border: 1px solid var(--glass-border);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all 0.2s; color: var(--white); font-size: 16px;
+}
+.scores-btn:active { transform: scale(0.92); }
+
+/* ── SPACER ── */
+.spacer { flex: 1; pointer-events: none; }
+
+/* ── BOTTOM SCOREBOARD ── */
+.bottom-bar {
+  padding: 0 12px calc(var(--safe-bottom) + 12px);
+}
+
+.score-card {
+  background: var(--glass); backdrop-filter: blur(var(--blur)); -webkit-backdrop-filter: blur(var(--blur));
+  border: 1px solid var(--glass-border); border-radius: var(--radius);
+  overflow: hidden; transition: all 0.3s ease;
+}
+
+.score-card-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px; border-bottom: 1px solid var(--glass-border-light);
+}
+.score-heat-info { display: flex; align-items: center; gap: 8px; }
+.score-heat-round { font-family: var(--font-heading); font-size: 12px; font-weight: 600; color: var(--white); }
+.score-heat-num { font-family: var(--font-mono); font-size: 10px; color: var(--white-40); }
+.score-heat-timer { font-family: var(--font-mono); font-size: 10px; color: var(--white-40); }
+
+.score-heat-live { display: flex; align-items: center; gap: 4px; font-family: var(--font-mono); font-size: 9px; color: var(--live-red); letter-spacing: 1px; text-transform: uppercase; }
+.score-heat-live .dot { width: 4px; height: 4px; background: var(--live-red); border-radius: 50%; animation: pulse-dot 1.5s ease-in-out infinite; }
+
+/* Surfer rows */
+.score-surfers { padding: 6px 0; }
+
+.score-surfer {
+  display: flex; align-items: center; gap: 10px; padding: 7px 14px; transition: background 0.2s;
+}
+.score-surfer.leading { background: rgba(45,212,168,0.06); }
+.surfer-singlet { width: 4px; height: 28px; border-radius: 2px; flex-shrink: 0; }
+.surfer-rank { font-family: var(--font-mono); font-size: 10px; font-weight: 600; color: var(--white-40); width: 14px; text-align: center; }
+.surfer-rank.first { color: var(--teal); }
+.surfer-details { flex: 1; min-width: 0; }
+.surfer-name { font-family: var(--font-heading); font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.2; }
+.surfer-meta { display: flex; align-items: center; gap: 6px; margin-top: 1px; }
+.surfer-waves-detail { font-family: var(--font-mono); font-size: 10px; color: var(--white-40); }
+.surfer-diff { font-family: var(--font-mono); font-size: 10px; font-weight: 500; }
+.surfer-diff.winning { color: var(--teal); }
+.surfer-diff.needs { color: var(--white-40); }
+.surfer-diff.combo { color: var(--coral); }
+.surfer-score { font-family: var(--font-mono); font-size: 18px; font-weight: 700; min-width: 48px; text-align: right; letter-spacing: -0.5px; }
+.surfer-score.leading { color: var(--teal); }
+.surfer-score.zero { color: var(--white-20); }
+
+/* Footer */
+.score-card-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 14px; border-top: 1px solid var(--glass-border-light);
+}
+.division-pills { display: flex; gap: 6px; }
+.div-pill { display: flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 12px; font-size: 10px; font-weight: 500; color: var(--white-40); background: var(--white-08); }
+.div-pill.active { color: var(--teal); background: rgba(45,212,168,0.1); }
+.div-pill .dot { width: 4px; height: 4px; border-radius: 50%; background: currentColor; }
+.div-pill.active .dot { animation: pulse-dot 1.5s ease-in-out infinite; }
+.score-expand-btn { background: none; border: none; color: var(--white-40); font-family: var(--font-heading); font-size: 11px; font-weight: 500; cursor: pointer; padding: 4px 8px; border-radius: 8px; transition: all 0.2s; }
+.score-expand-btn:active { background: var(--white-08); }
+
+/* ── DRAWER ── */
+.drawer-overlay { position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,0.4); opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
+.drawer-overlay.open { opacity: 1; pointer-events: auto; }
+
+.drawer {
+  position: fixed; top: 0; right: 0; bottom: 0; width: min(380px, 85vw); z-index: 51;
+  background: var(--glass-heavy); backdrop-filter: blur(var(--blur-heavy)); -webkit-backdrop-filter: blur(var(--blur-heavy));
+  border-left: 1px solid var(--glass-border);
+  transform: translateX(100%); transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.drawer.open { transform: translateX(0); }
+
+.drawer-handle-area { display: flex; align-items: center; justify-content: center; padding: calc(var(--safe-top) + 12px) 16px 0; }
+.drawer-handle { width: 36px; height: 4px; background: var(--white-20); border-radius: 2px; }
+.drawer-header { padding: 12px 20px 14px; }
+.drawer-title { font-family: var(--font-heading); font-size: 20px; font-weight: 700; letter-spacing: -0.3px; }
+.drawer-subtitle { font-size: 12px; color: var(--white-40); margin-top: 4px; display: flex; align-items: center; gap: 8px; }
+.drawer-tier { font-family: var(--font-mono); font-size: 10px; color: var(--teal); background: rgba(45,212,168,0.1); padding: 2px 6px; border-radius: 4px; font-weight: 600; }
+
+.drawer-tabs { display: flex; margin: 0 20px; background: var(--white-08); border-radius: var(--radius-sm); padding: 3px; }
+.drawer-tab { flex: 1; padding: 7px; text-align: center; font-family: var(--font-heading); font-size: 12px; font-weight: 500; color: var(--white-40); cursor: pointer; border-radius: 8px; border: none; background: none; transition: all 0.2s; }
+.drawer-tab.active { color: var(--white); background: var(--glass-light); box-shadow: 0 1px 4px rgba(0,0,0,0.2); }
+
+.drawer-scroll { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 12px 0 calc(var(--safe-bottom) + 12px); scrollbar-width: none; }
+.drawer-scroll::-webkit-scrollbar { display: none; }
+
+.drawer-round { padding: 8px 20px 4px; }
+.drawer-round-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.drawer-round-name { font-family: var(--font-heading); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: var(--white-40); }
+.drawer-round-badge { font-family: var(--font-mono); font-size: 9px; padding: 2px 6px; border-radius: 4px; font-weight: 500; letter-spacing: 0.5px; }
+.badge-live { background: rgba(255,59,48,0.15); color: var(--live-red); }
+.badge-done { background: rgba(45,212,168,0.1); color: var(--teal); }
+.badge-upcoming { background: var(--white-08); color: var(--white-40); }
+
+.drawer-heat { background: var(--white-08); border-radius: var(--radius-sm); margin-bottom: 8px; overflow: hidden; border: 1px solid transparent; transition: border-color 0.2s; }
+.drawer-heat.live { border-color: rgba(45,212,168,0.2); background: rgba(45,212,168,0.04); }
+.drawer-heat-header { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; border-bottom: 1px solid var(--glass-border-light); }
+.drawer-heat-label { font-family: var(--font-mono); font-size: 10px; color: var(--white-40); font-weight: 500; }
+.drawer-heat-live { display: flex; align-items: center; gap: 4px; font-family: var(--font-mono); font-size: 9px; color: var(--live-red); letter-spacing: 1px; }
+.drawer-heat-live .dot { width: 4px; height: 4px; background: var(--live-red); border-radius: 50%; animation: pulse-dot 1.5s ease-in-out infinite; }
+
+.drawer-surfer { display: flex; align-items: center; gap: 8px; padding: 6px 12px; }
+.drawer-surfer.eliminated { opacity: 0.35; }
+.drawer-surfer-singlet { width: 3px; height: 22px; border-radius: 1.5px; flex-shrink: 0; }
+.drawer-surfer-name { flex: 1; font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.drawer-surfer-tag { font-family: var(--font-mono); font-size: 9px; font-weight: 600; padding: 1px 5px; border-radius: 3px; }
+.tag-adv { background: rgba(45,212,168,0.12); color: var(--teal); }
+.tag-out { background: rgba(255,107,107,0.12); color: var(--coral); }
+.drawer-surfer-waves { font-family: var(--font-mono); font-size: 10px; color: var(--white-40); }
+.drawer-surfer-score { font-family: var(--font-mono); font-size: 13px; font-weight: 600; min-width: 36px; text-align: right; }
+.drawer-surfer-score.leading { color: var(--teal); }
+
+.bracket-list { padding: 12px 20px; }
+.bracket-item { display: flex; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--glass-border-light); gap: 12px; }
+.bracket-item:last-child { border-bottom: none; }
+.bracket-name { font-family: var(--font-heading); font-size: 14px; font-weight: 600; flex: 1; }
+.bracket-heats { font-family: var(--font-mono); font-size: 11px; color: var(--white-40); }
+
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+.empty-state { text-align: center; padding: 48px 24px; color: var(--white-40); }
+.empty-state-icon { font-size: 36px; margin-bottom: 12px; opacity: 0.5; }
+.empty-state-text { font-size: 14px; }
+
+.skeleton { background: linear-gradient(90deg, var(--white-08) 0%, rgba(255,255,255,0.04) 50%, var(--white-08) 100%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: var(--radius-xs); }
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+.skeleton-row { height: 44px; margin: 6px 14px; }
+
+/* ── DESKTOP / WIDE: horizontal score bar ── */
+@media (min-width: 769px) {
+  .scores-btn { width: 40px; height: 40px; font-size: 18px; }
+  .drawer { width: 400px; }
+  .bottom-bar { padding: 0 20px 20px; transition: all 0.35s cubic-bezier(0.32, 0.72, 0, 1); }
+  .score-card { max-width: 100%; border-radius: var(--radius); }
+  .score-card-header { padding: 10px 20px; }
+
+  .score-surfers { display: flex; padding: 0; }
+  .score-surfer { flex: 1; padding: 12px 16px; border-right: 1px solid var(--glass-border-light); gap: 10px; }
+  .score-surfer:last-child { border-right: none; }
+  .surfer-score { font-size: 24px; min-width: 60px; }
+  .surfer-name { font-size: 14px; }
+  .surfer-rank { font-size: 12px; width: 18px; }
+  .surfer-singlet { height: 36px; width: 5px; }
+  .score-card-footer { padding: 8px 20px; }
+
+  /* Drawer open: shrink */
+  body.drawer-open .bottom-bar { padding-right: 420px; }
+  body.drawer-open .surfer-meta { display: none; }
+  body.drawer-open .surfer-score { font-size: 18px; min-width: 44px; }
+  body.drawer-open .surfer-singlet { height: 24px; }
+  body.drawer-open .score-surfer { padding: 8px 12px; gap: 8px; }
+  body.drawer-open .surfer-name { font-size: 12px; }
+}
+
+/* ── MOBILE: stacked card ── */
+@media (max-width: 768px) {
+  .bottom-bar { padding: 0 10px calc(var(--safe-bottom) + 10px); }
+  .score-card { border-radius: 14px; }
+  .surfer-score { font-size: 18px; }
+}
+</style>
+</head>
+<body>
+
+<!-- VIDEO (full bleed) -->
+<div class="video-layer" id="videoLayer"></div>
+
+<!-- UI OVERLAY -->
+<div class="ui-layer">
+  <div class="top-bar">
+    <div class="top-left">
+      <img src="corus_logo_white.png" alt="Corus" class="logo">
+      <div class="logo-divider"></div>
+      <span class="logo-label">Surf Cam</span>
+    </div>
+    <div class="top-right">
+      <div class="live-pill" id="livePill" style="display:none"><span class="dot"></span>LIVE</div>
+      <button class="scores-btn" id="drawerBtn" aria-label="Scores">☰</button>
+    </div>
+  </div>
+
+  <div class="spacer"></div>
+
+  <div class="bottom-bar">
+    <div class="score-card" id="scoreCard">
+      <div class="score-card-header">
+        <div class="score-heat-info">
+          <span class="score-heat-round" id="scoreRound">—</span>
+          <span class="score-heat-num" id="scoreHeatNum"></span>
+          <span class="score-heat-timer" id="scoreTimer"></span>
+        </div>
+        <div class="score-heat-live" id="scoreLive" style="display:none"><span class="dot"></span>LIVE</div>
+      </div>
+      <div class="score-surfers" id="scoreSurfers">
+        <div class="skeleton skeleton-row"></div>
+        <div class="skeleton skeleton-row"></div>
+        <div class="skeleton skeleton-row"></div>
+        <div class="skeleton skeleton-row"></div>
+      </div>
+      <div class="score-card-footer">
+        <div class="division-pills" id="divisionPills"></div>
+        <button class="score-expand-btn" id="expandBtn">All Heats →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DRAWER OVERLAY -->
+<div class="drawer-overlay" id="drawerOverlay"></div>
+
+<!-- DRAWER -->
+<div class="drawer" id="drawer">
+  <div class="drawer-handle-area"><div class="drawer-handle"></div></div>
+  <div class="drawer-header">
+    <div class="drawer-title">Barbados Surf Pro</div>
+    <div class="drawer-subtitle">
+      <span class="drawer-tier">QS 6,000</span>
+      <span>Soup Bowl, Bathsheba</span>
+    </div>
+  </div>
+  <div class="drawer-tabs">
+    <button class="drawer-tab active" data-tab="heats">Heats</button>
+    <button class="drawer-tab" data-tab="rounds">Rounds</button>
+  </div>
+  <div class="drawer-scroll">
+    <div class="tab-panel active" id="panel-heats"><div id="drawerHeats"></div></div>
+    <div class="tab-panel" id="panel-rounds"><div id="drawerRounds"></div></div>
+  </div>
+</div>
+
+<script>
+const SINGLET = {red:'#d41f26',white:'#fff',blue:'#007aff',green:'#34c759',yellow:'#ffd700',black:'#333',brown:'#a45d2c'};
+const HEAT_DURATION = 25;
+let data = null;
+let heatStarts = JSON.parse(localStorage.getItem('heatStarts')||'{}');
+let drawerOpen = false;
+
+// ── Stream ──
+(function() {
+  const layer = document.getElementById('videoLayer');
+  const iframe = document.createElement('iframe');
+  iframe.src = 'https://customer-bu7i05hdb1yap6n8.cloudflarestream.com/56faab67dc45517018581598cd48b03a/iframe?autoplay=true&muted=true&preload=true&controls=false&letterboxColor=transparent';
+  iframe.allow = 'accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen';
+  iframe.allowFullscreen = true;
+  layer.appendChild(iframe);
+})();
+
+// ── Drawer ──
+const drawerEl = document.getElementById('drawer');
+const overlayEl = document.getElementById('drawerOverlay');
+
+function toggleDrawer(open) {
+  drawerOpen = typeof open === 'boolean' ? open : !drawerOpen;
+  drawerEl.classList.toggle('open', drawerOpen);
+  overlayEl.classList.toggle('open', drawerOpen);
+  document.body.classList.toggle('drawer-open', drawerOpen);
+}
+
+document.getElementById('drawerBtn').addEventListener('click', () => toggleDrawer());
+document.getElementById('expandBtn').addEventListener('click', () => toggleDrawer(true));
+overlayEl.addEventListener('click', () => toggleDrawer(false));
+
+let touchStartX = 0;
+drawerEl.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, {passive:true});
+drawerEl.addEventListener('touchend', e => { if (e.changedTouches[0].clientX - touchStartX > 60) toggleDrawer(false); }, {passive:true});
+
+document.querySelectorAll('.drawer-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.drawer-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById(`panel-${tab.dataset.tab}`).classList.add('active');
+  });
+});
+
+// ── Fetch ──
+async function fetchData() {
+  try {
+    const res = await fetch('/api/live');
+    data = await res.json();
+    if (data.liveHeat?.heatId && !heatStarts[data.liveHeat.heatId]) {
+      heatStarts[data.liveHeat.heatId] = Date.now();
+      localStorage.setItem('heatStarts', JSON.stringify(heatStarts));
+    }
+    render();
+  } catch(e) { console.error(e); }
+}
+
+// ── Render ──
+function render() {
+  if (!data) return;
+
+  document.getElementById('livePill').style.display = data.liveHeat ? 'flex' : 'none';
+
+  document.getElementById('divisionPills').innerHTML = (data.divisions||[]).map(d =>
+    `<div class="div-pill ${d.status==='In the Water'?'active':''}"><span class="dot"></span>${d.name}</div>`
+  ).join('');
+
+  renderScoreCard();
+  renderDrawerHeats();
+  renderDrawerRounds();
+}
+
+function renderScoreCard() {
+  const live = data.liveHeat;
+  if (!live?.surfers?.length) {
+    document.getElementById('scoreRound').textContent = 'Waiting for next heat...';
+    document.getElementById('scoreHeatNum').textContent = '';
+    document.getElementById('scoreLive').style.display = 'none';
+    document.getElementById('scoreSurfers').innerHTML = '<div class="empty-state"><div class="empty-state-text">Heat data will appear here</div></div>';
+    return;
+  }
+
+  document.getElementById('scoreRound').textContent = live.round || '';
+  document.getElementById('scoreHeatNum').textContent = live.heatNumber ? `Heat ${live.heatNumber}` : '';
+  document.getElementById('scoreLive').style.display = 'flex';
+
+  const sorted = [...live.surfers].sort((a,b) => b.score - a.score);
+  const top = sorted[0]?.score || 0;
+
+  document.getElementById('scoreSurfers').innerHTML = sorted.map((s, i) => {
+    const isLead = s.score === top && s.score > 0;
+    const color = SINGLET[s.singlet] || '#888';
+    const diffClass = s.diff?.startsWith('Win') ? 'winning' : s.diff?.startsWith('Combo') ? 'combo' : 'needs';
+    const wavesText = s.waves?.length ? s.waves.map(w=>w.toFixed(2)).join(' + ') : `${s.waveCount||0} waves`;
+
+    return `
+      <div class="score-surfer ${isLead?'leading':''}">
+        <div class="surfer-singlet" style="background:${color}"></div>
+        <span class="surfer-rank ${isLead?'first':''}">${i+1}</span>
+        <div class="surfer-details">
+          <div class="surfer-name">${s.name}</div>
+          <div class="surfer-meta">
+            <span class="surfer-waves-detail">${wavesText}</span>
+            ${s.diff ? `<span class="surfer-diff ${diffClass}">${s.diff}</span>` : ''}
+          </div>
+        </div>
+        <span class="surfer-score ${isLead?'leading':''} ${s.score===0?'zero':''}">${s.score?s.score.toFixed(2):'—'}</span>
+      </div>`;
+  }).join('');
+}
+
+function renderDrawerHeats() {
+  const el = document.getElementById('drawerHeats');
+  const heats = data.heats || [];
+  if (!heats.length && !data.liveHeat) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🏄</div><div class="empty-state-text">No heat data yet</div></div>';
+    return;
+  }
+  let html = '';
+  if (data.liveHeat?.surfers?.length) {
+    html += `<div class="drawer-round"><div class="drawer-round-header"><span class="drawer-round-name">${data.liveHeat.round||'Current'}</span><span class="drawer-round-badge badge-live">LIVE</span></div>`;
+    html += renderDrawerHeat(data.liveHeat, true);
+    html += '</div>';
+  }
+  const done = heats.filter(h => h.status==='over').reverse();
+  if (done.length) {
+    html += '<div class="drawer-round"><div class="drawer-round-header"><span class="drawer-round-name">Completed</span><span class="drawer-round-badge badge-done">DONE</span></div>';
+    done.forEach(h => { html += renderDrawerHeat(h, false); });
+    html += '</div>';
+  }
+  el.innerHTML = html;
+}
+
+function renderDrawerHeat(heat, isLive) {
+  const sorted = [...(heat.surfers||[])].sort((a,b) => b.score - a.score);
+  const top = sorted[0]?.score || 0;
+  return `
+    <div class="drawer-heat ${isLive?'live':''}">
+      <div class="drawer-heat-header">
+        <span class="drawer-heat-label">Heat ${heat.heatNumber||heat.number||''}</span>
+        ${isLive?'<span class="drawer-heat-live"><span class="dot"></span>LIVE</span>':''}
+      </div>
+      ${sorted.map(s => {
+        const isLead = s.score===top && s.score>0;
+        const isElim = s.status==='eliminated';
+        const isAdv = s.status?.includes('advance');
+        const color = SINGLET[s.singlet]||'#888';
+        let tag = '';
+        if (isAdv) tag = '<span class="drawer-surfer-tag tag-adv">ADV</span>';
+        else if (isElim) tag = '<span class="drawer-surfer-tag tag-out">OUT</span>';
+        return `
+          <div class="drawer-surfer ${isElim?'eliminated':''}">
+            <div class="drawer-surfer-singlet" style="background:${color}"></div>
+            <span class="drawer-surfer-name">${s.name}</span>
+            ${tag}
+            <span class="drawer-surfer-waves">${s.waveCount||0}w</span>
+            <span class="drawer-surfer-score ${isLead?'leading':''}">${s.score?s.score.toFixed(2):'—'}</span>
+          </div>`;
+      }).join('')}
+    </div>`;
+}
+
+function renderDrawerRounds() {
+  const el = document.getElementById('drawerRounds');
+  if (!data.rounds?.length) { el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📋</div><div class="empty-state-text">No round info</div></div>'; return; }
+  el.innerHTML = '<div class="bracket-list">' + data.rounds.map(r => {
+    let badge = 'badge-upcoming';
+    if (r.status.includes('Progress')) badge = 'badge-live';
+    else if (r.status.includes('Completed')) badge = 'badge-done';
+    return `<div class="bracket-item"><span class="bracket-name">${r.name}</span><span class="bracket-heats">${r.heats} heat${r.heats>1?'s':''}</span><span class="drawer-round-badge ${badge}">${r.status}</span></div>`;
+  }).join('') + '</div>';
+}
+
+// ── Timer ──
+setInterval(() => {
+  if (!data?.liveHeat?.heatId) return;
+  const start = heatStarts[data.liveHeat.heatId];
+  if (!start) return;
+  const elapsed = (Date.now() - start) / 60000;
+  const remaining = Math.max(0, HEAT_DURATION - elapsed);
+  const m = Math.floor(remaining);
+  const s = Math.floor((remaining - m) * 60);
+  document.getElementById('scoreTimer').textContent = remaining > 0 ? `~${m}:${String(s).padStart(2,'0')}` : 'ending';
+}, 1000);
+
+// ── Init ──
+fetchData();
+setInterval(fetchData, 10000);
+</script>
+</body>
+</html>
