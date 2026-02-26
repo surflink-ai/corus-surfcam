@@ -607,16 +607,15 @@ let drawerOpen = false;
       });
 
       pc.ontrack = (e) => {
-        console.log('Track received:', e.track.kind, e.track.readyState, 'streams:', e.streams.length);
+        window._dbg?.(`Track: ${e.track.kind} ${e.track.readyState} streams:${e.streams.length}`);
         if (e.streams[0]) {
           video.srcObject = e.streams[0];
         } else {
-          // No stream — add track directly
           const ms = video.srcObject || new MediaStream();
           ms.addTrack(e.track);
           video.srcObject = ms;
         }
-        video.play().catch(err => console.error('Play failed:', err));
+        video.play().then(() => window._dbg?.('Playing')).catch(err => window._dbg?.('Play err: ' + err));
       };
 
       pc.addTransceiver('video', { direction: 'recvonly' });
@@ -663,11 +662,12 @@ let drawerOpen = false;
       const answerSDP = await resp.text();
       await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: answerSDP }));
 
+      window._dbg?.('WHEP connected');
       console.log('WHEP connected — WebRTC sub-second latency active');
 
       pc.onconnectionstatechange = () => {
         const s = pc.connectionState;
-        console.log('WebRTC state:', s);
+        window._dbg?.('State: ' + s);
         if (s === 'failed') {
           pc.close();
           console.warn('WebRTC failed, retrying in 3s...');
@@ -680,11 +680,19 @@ let drawerOpen = false;
       document.addEventListener('click', unmute);
 
     } catch(e) {
+      window._dbg?.('WHEP err: ' + e.message);
       console.error('WHEP error:', e);
       if (pc) pc.close();
       fallbackHLS();
     }
   }
+
+  // On-screen debug overlay
+  const dbg = document.createElement('div');
+  dbg.id = 'whepDebug';
+  dbg.style.cssText = 'position:fixed;bottom:60px;left:8px;z-index:999;font:11px/1.4 monospace;color:lime;background:rgba(0,0,0,0.8);padding:6px 10px;border-radius:6px;max-width:90vw;pointer-events:none;white-space:pre-wrap;';
+  document.body.appendChild(dbg);
+  window._dbg = (msg) => { dbg.textContent += msg + '\n'; console.log(msg); };
 
   startWHEP();
 })();
