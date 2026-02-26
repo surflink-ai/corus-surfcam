@@ -562,139 +562,145 @@ let data = null;
 let heatStarts = JSON.parse(localStorage.getItem('heatStarts')||'{}');
 let drawerOpen = false;
 
-// ── Stream (WebRTC WHEP for <3s latency, with HLS fallback) ──
+// ── Stream: WHEP (WebRTC) with LL-HLS fallback ──
 (function() {
   const WHEP_URL = 'https://customer-bu7i05hdb1yap6n8.cloudflarestream.com/56faab67dc45517018581598cd48b03a/webRTC/play';
-  const HLS_URL = 'https://customer-bu7i05hdb1yap6n8.cloudflarestream.com/56faab67dc45517018581598cd48b03a/iframe?autoplay=true&muted=true&preload=true&controls=false&letterboxColor=transparent';
+  const HLS_URL = 'https://customer-bu7i05hdb1yap6n8.cloudflarestream.com/56faab67dc45517018581598cd48b03a/manifest/video.m3u8';
+  const IFRAME_URL = 'https://customer-bu7i05hdb1yap6n8.cloudflarestream.com/56faab67dc45517018581598cd48b03a/iframe?autoplay=true&muted=true&preload=true&controls=false&letterboxColor=transparent&defaultTextTrack=off';
   const layer = document.getElementById('videoLayer');
   const isMobile = window.matchMedia('(max-width:768px)').matches;
 
-  function makeVideo() {
-    const v = document.createElement('video');
-    v.id = 'liveVideo';
-    v.autoplay = true;
-    v.muted = true;
-    v.playsInline = true;
-    v.setAttribute('playsinline','');
-    v.setAttribute('webkit-playsinline','');
-    if (isMobile) v.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;';
-    return v;
+  // Debug overlay
+  const dbg = document.createElement('div');
+  dbg.style.cssText = 'position:fixed;bottom:60px;left:8px;z-index:999;font:11px/1.4 monospace;color:lime;background:rgba(0,0,0,0.8);padding:6px 10px;border-radius:6px;max-width:90vw;pointer-events:none;white-space:pre-wrap;';
+  document.body.appendChild(dbg);
+  const log = (msg) => { dbg.textContent += msg + '\n'; console.log('[stream]', msg); };
+
+  function videoStyle() {
+    return isMobile
+      ? 'position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;'
+      : '';
   }
 
-  function fallbackHLS() {
-    console.warn('Using HLS fallback');
-    layer.innerHTML = '';
-    const iframe = document.createElement('iframe');
-    iframe.src = HLS_URL;
-    iframe.allow = 'accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen';
-    iframe.allowFullscreen = true;
-    if (isMobile) iframe.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;border:none;';
-    layer.appendChild(iframe);
-  }
+  // Strategy 1: WHEP WebRTC (<1s latency)
+  async function tryWHEP() {
+    log('Trying WHEP...');
+    const video = document.createElement('video');
+    video.autoplay = true; video.muted = true; video.playsInline = true;
+    video.setAttribute('playsinline','');
+    video.style.cssText = videoStyle();
+    layer.innerHTML = ''; layer.appendChild(video);
 
-  let pc = null;
-  let resourceURL = null;
+    const pc = new RTCPeerConnection({
+      iceServers: [{ urls: 'stun:stun.cloudflare.com:3478' }],
+      bundlePolicy: 'max-bundle',
+    });
 
-  async function startWHEP() {
-    const video = makeVideo();
-    layer.innerHTML = '';
-    layer.appendChild(video);
-
-    try {
-      pc = new RTCPeerConnection({
-        iceServers: [{ urls: 'stun:stun.cloudflare.com:3478' }],
-        bundlePolicy: 'max-bundle',
-      });
+    let gotVideo = false;
+    const videoReady = new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        if (!gotVideo) reject(new Error('No video frames after 8s'));
+      }, 8000);
 
       pc.ontrack = (e) => {
-        window._dbg?.(`Track: ${e.track.kind} ${e.track.readyState} streams:${e.streams.length}`);
-        if (e.streams[0]) {
-          video.srcObject = e.streams[0];
-        } else {
+        log(`Track: ${e.track.kind} ${e.track.readyState}`);
+        if (e.streams[0]) video.srcObject = e.streams[0];
+        else {
           const ms = video.srcObject || new MediaStream();
           ms.addTrack(e.track);
           video.srcObject = ms;
         }
-        video.play().then(() => window._dbg?.('Playing')).catch(err => window._dbg?.('Play err: ' + err));
-      };
+        video.play().catch(() => {});
 
-      pc.addTransceiver('video', { direction: 'recvonly' });
-      pc.addTransceiver('audio', { direction: 'recvonly' });
-
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-
-      // Wait for ICE gathering to complete before sending offer
-      await new Promise((resolve) => {
-        if (pc.iceGatheringState === 'complete') return resolve();
-        const check = () => {
-          if (pc.iceGatheringState === 'complete') {
-            pc.removeEventListener('icegatheringstatechange', check);
-            resolve();
-          }
-        };
-        pc.addEventListener('icegatheringstatechange', check);
-        // Safety timeout
-        setTimeout(resolve, 3000);
-      });
-
-      console.log('ICE gathered, sending WHEP offer...');
-      console.log('Offer SDP (first 200):', pc.localDescription.sdp.substring(0, 200));
-
-      // Try WHEP with standard content type
-      let resp = await fetch(WHEP_URL, {
-        method: 'POST',
-        mode: 'cors',
-        headers: { 'Content-Type': 'application/sdp' },
-        body: pc.localDescription.sdp,
-      });
-
-      if (!resp.ok) {
-        const errBody = await resp.text();
-        console.error(`WHEP attempt 1 failed (${resp.status}):`, errBody);
-        throw new Error(`WHEP ${resp.status}: ${errBody}`);
-      }
-
-      // Save resource URL for WHEP DELETE (teardown)
-      const loc = resp.headers.get('Location');
-      if (loc) resourceURL = new URL(loc, WHEP_URL).href;
-
-      const answerSDP = await resp.text();
-      await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: answerSDP }));
-
-      window._dbg?.('WHEP connected');
-      console.log('WHEP connected — WebRTC sub-second latency active');
-
-      pc.onconnectionstatechange = () => {
-        const s = pc.connectionState;
-        window._dbg?.('State: ' + s);
-        if (s === 'failed') {
-          pc.close();
-          console.warn('WebRTC failed, retrying in 3s...');
-          setTimeout(startWHEP, 3000);
+        if (e.track.kind === 'video') {
+          // Check if we actually get frames
+          video.onplaying = () => { gotVideo = true; clearTimeout(timeout); resolve(); };
+          video.onloadeddata = () => { gotVideo = true; clearTimeout(timeout); resolve(); };
         }
       };
+    });
 
-      // Unmute on first interaction
-      const unmute = () => { video.muted = false; document.removeEventListener('click', unmute); };
-      document.addEventListener('click', unmute);
+    pc.addTransceiver('video', { direction: 'recvonly' });
+    pc.addTransceiver('audio', { direction: 'recvonly' });
 
-    } catch(e) {
-      window._dbg?.('WHEP err: ' + e.message);
-      console.error('WHEP error:', e);
-      if (pc) pc.close();
-      fallbackHLS();
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+
+    // Wait for ICE
+    await new Promise(r => {
+      if (pc.iceGatheringState === 'complete') return r();
+      pc.addEventListener('icegatheringstatechange', function check() {
+        if (pc.iceGatheringState === 'complete') { pc.removeEventListener('icegatheringstatechange', check); r(); }
+      });
+      setTimeout(r, 3000);
+    });
+
+    const resp = await fetch(WHEP_URL, {
+      method: 'POST', mode: 'cors',
+      headers: { 'Content-Type': 'application/sdp' },
+      body: pc.localDescription.sdp,
+    });
+
+    if (!resp.ok) throw new Error(`WHEP ${resp.status}: ${await resp.text()}`);
+
+    await pc.setRemoteDescription({ type: 'answer', sdp: await resp.text() });
+    log('WHEP signaling done, waiting for frames...');
+
+    // Wait for actual video frames or timeout
+    await videoReady;
+    log('WHEP live! Sub-second latency ✓');
+
+    pc.onconnectionstatechange = () => {
+      log('State: ' + pc.connectionState);
+      if (pc.connectionState === 'failed') { pc.close(); startStream(); }
+    };
+
+    // Unmute on tap
+    document.addEventListener('click', () => { video.muted = false; }, { once: true });
+  }
+
+  // Strategy 2: Native HLS (Safari) or iframe (others) — ~3-6s latency
+  function useHLS() {
+    log('Using LL-HLS...');
+    layer.innerHTML = '';
+
+    // Safari supports HLS natively on <video>
+    const video = document.createElement('video');
+    if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = HLS_URL;
+      video.autoplay = true; video.muted = true; video.playsInline = true;
+      video.setAttribute('playsinline','');
+      video.style.cssText = videoStyle();
+      layer.appendChild(video);
+      // Jump to live edge
+      video.addEventListener('loadedmetadata', () => {
+        if (video.duration) video.currentTime = video.duration - 0.5;
+      });
+      video.addEventListener('playing', () => log('HLS playing'));
+      video.play().catch(() => {});
+      document.addEventListener('click', () => { video.muted = false; }, { once: true });
+    } else {
+      // Non-Safari: use Cloudflare iframe player
+      const iframe = document.createElement('iframe');
+      iframe.src = IFRAME_URL;
+      iframe.allow = 'accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen';
+      iframe.allowFullscreen = true;
+      iframe.style.cssText = (isMobile ? 'position:absolute;top:0;left:0;width:100%;height:100%;' : '') + 'border:none;';
+      layer.appendChild(iframe);
+      log('HLS iframe loaded');
     }
   }
 
-  // On-screen debug overlay
-  const dbg = document.createElement('div');
-  dbg.id = 'whepDebug';
-  dbg.style.cssText = 'position:fixed;bottom:60px;left:8px;z-index:999;font:11px/1.4 monospace;color:lime;background:rgba(0,0,0,0.8);padding:6px 10px;border-radius:6px;max-width:90vw;pointer-events:none;white-space:pre-wrap;';
-  document.body.appendChild(dbg);
-  window._dbg = (msg) => { dbg.textContent += msg + '\n'; console.log(msg); };
+  async function startStream() {
+    try {
+      await tryWHEP();
+    } catch(e) {
+      log('WHEP failed: ' + e.message);
+      useHLS();
+    }
+  }
 
-  startWHEP();
+  startStream();
 })();
 
 // ── Drawer ──
