@@ -277,9 +277,9 @@ body {
   body.drawer-open .surfer-name { font-size: 12px; }
 }
 
-/* ── MOBILE: 16:9 video on top, scores below ── */
+/* ── MOBILE: 16:9 video on top, rich scores below ── */
 @media (max-width: 768px) {
-  body { overflow-y: auto; overflow-x: hidden; height: auto; min-height: 100dvh; }
+  body { overflow-y: auto; overflow-x: hidden; height: auto; min-height: 100dvh; background: #08080f; }
 
   .video-layer {
     position: relative;
@@ -311,38 +311,158 @@ body {
 
   .spacer { display: none; }
 
-  .bottom-bar {
-    padding: 0;
-    background: #0a0a12;
-  }
+  /* Hide desktop score card on mobile */
+  .bottom-bar { display: none; }
 
-  .score-card {
-    background: #0a0a12;
-    border: none;
-    border-radius: 0;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-  }
-
-  .score-card-header {
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--glass-border);
-  }
-
-  .score-surfer {
-    padding: 10px 16px;
-    border-bottom: 1px solid rgba(255,255,255,0.04);
-  }
-
-  .surfer-score { font-size: 20px; min-width: 52px; }
-  .surfer-name { font-size: 14px; }
-  .surfer-singlet { height: 32px; }
-
-  .score-card-footer {
-    padding: 10px 16px;
-    border-top: 1px solid var(--glass-border);
-  }
+  /* Show mobile scores panel */
+  .mobile-scores { display: block; }
 }
+
+/* Hide mobile panel on desktop */
+.mobile-scores { display: none; }
+
+/* ── Mobile Scores Panel ── */
+.ms-heat-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px;
+  background: #0c0c14;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.ms-heat-left { display: flex; align-items: center; gap: 8px; }
+.ms-round { font-family: var(--font-heading); font-size: 14px; font-weight: 600; }
+.ms-heat-num { font-family: var(--font-mono); font-size: 11px; color: var(--white-40); }
+.ms-heat-right { display: flex; align-items: center; gap: 10px; }
+.ms-timer { font-family: var(--font-mono); font-size: 12px; color: var(--white-40); }
+.ms-live { display: flex; align-items: center; gap: 5px; font-family: var(--font-mono); font-size: 10px; color: var(--live-red); letter-spacing: 1px; }
+.ms-live .dot { width: 5px; height: 5px; background: var(--live-red); border-radius: 50%; animation: pulse-dot 1.5s ease-in-out infinite; }
+
+/* Division pills */
+.ms-divs {
+  display: flex; gap: 6px; padding: 8px 16px;
+  background: #0c0c14;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+/* Athlete cards */
+.ms-athletes { padding: 8px 12px; }
+
+.ms-card {
+  background: #111119;
+  border-radius: 14px;
+  margin-bottom: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.05);
+  transition: border-color 0.3s;
+}
+.ms-card.leading { border-color: rgba(45,212,168,0.2); }
+
+.ms-card-top {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 16px 10px;
+}
+.ms-singlet-bar {
+  width: 5px; height: 44px; border-radius: 3px; flex-shrink: 0;
+}
+.ms-card-info { flex: 1; min-width: 0; }
+.ms-card-row1 {
+  display: flex; align-items: center; justify-content: space-between;
+}
+.ms-athlete-name {
+  font-family: var(--font-heading); font-size: 16px; font-weight: 700;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  flex: 1;
+}
+.ms-total-score {
+  font-family: var(--font-mono); font-size: 28px; font-weight: 700;
+  letter-spacing: -1px; margin-left: 12px; flex-shrink: 0;
+}
+.ms-total-score.leading { color: var(--teal); }
+.ms-total-score.zero { color: var(--white-20); }
+
+.ms-card-row2 {
+  display: flex; align-items: center; gap: 8px; margin-top: 4px;
+}
+.ms-rank-pill {
+  font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+  padding: 2px 8px; border-radius: 10px;
+  background: var(--white-08); color: var(--white-40);
+}
+.ms-rank-pill.first { background: rgba(45,212,168,0.12); color: var(--teal); }
+.ms-diff-pill {
+  font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+  padding: 2px 8px; border-radius: 10px;
+}
+.ms-diff-pill.winning { background: rgba(45,212,168,0.1); color: var(--teal); }
+.ms-diff-pill.needs { background: var(--white-08); color: var(--white-40); }
+.ms-diff-pill.combo { background: rgba(255,107,107,0.1); color: var(--coral); }
+.ms-wave-count {
+  font-family: var(--font-mono); font-size: 10px; color: var(--white-40);
+}
+
+/* Wave scores breakdown */
+.ms-waves {
+  display: flex; gap: 6px; padding: 0 16px 12px;
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.ms-waves::-webkit-scrollbar { display: none; }
+
+.ms-wave {
+  flex-shrink: 0;
+  min-width: 52px;
+  text-align: center;
+  padding: 6px 8px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.04);
+}
+.ms-wave.counted {
+  background: rgba(45,212,168,0.06);
+  border-color: rgba(45,212,168,0.12);
+}
+.ms-wave-score {
+  font-family: var(--font-mono); font-size: 14px; font-weight: 600;
+  color: var(--white);
+}
+.ms-wave.counted .ms-wave-score { color: var(--teal); }
+.ms-wave-label {
+  font-family: var(--font-mono); font-size: 8px; font-weight: 500;
+  color: var(--white-20); text-transform: uppercase; letter-spacing: 0.5px;
+  margin-top: 2px;
+}
+
+/* Score bar visual */
+.ms-score-bar-wrap {
+  padding: 0 16px 14px;
+}
+.ms-score-bar {
+  height: 3px; width: 100%; background: rgba(255,255,255,0.04); border-radius: 2px;
+  overflow: hidden;
+}
+.ms-score-bar-fill {
+  height: 100%; border-radius: 2px;
+  background: var(--white-20);
+  transition: width 0.5s ease;
+}
+.ms-card.leading .ms-score-bar-fill {
+  background: linear-gradient(90deg, var(--teal), rgba(45,212,168,0.5));
+}
+
+/* All heats button */
+.ms-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  background: #0c0c14;
+}
+.ms-footer-divs { display: flex; gap: 6px; }
+.ms-all-heats {
+  font-family: var(--font-heading); font-size: 12px; font-weight: 500;
+  color: var(--white-40); background: none; border: none; cursor: pointer;
+  padding: 6px 12px; border-radius: 8px;
+  transition: background 0.2s;
+}
+.ms-all-heats:active { background: var(--white-08); }
 </style>
 </head>
 <body>
@@ -387,6 +507,25 @@ body {
         <button class="score-expand-btn" id="expandBtn">All Heats →</button>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- MOBILE SCORES PANEL -->
+<div class="mobile-scores" id="mobileScores">
+  <div class="ms-heat-bar">
+    <div class="ms-heat-left">
+      <span class="ms-round" id="msRound">--</span>
+      <span class="ms-heat-num" id="msHeatNum"></span>
+    </div>
+    <div class="ms-heat-right">
+      <span class="ms-timer" id="msTimer"></span>
+      <div class="ms-live" id="msLive" style="display:none"><span class="dot"></span>LIVE</div>
+    </div>
+  </div>
+  <div class="ms-athletes" id="msAthletes"></div>
+  <div class="ms-footer">
+    <div class="ms-footer-divs" id="msFooterDivs"></div>
+    <button class="ms-all-heats" id="msAllHeats">All Heats →</button>
   </div>
 </div>
 
@@ -443,6 +582,7 @@ function toggleDrawer(open) {
 
 document.getElementById('drawerBtn').addEventListener('click', () => toggleDrawer());
 document.getElementById('expandBtn').addEventListener('click', () => toggleDrawer(true));
+document.getElementById('msAllHeats').addEventListener('click', () => toggleDrawer(true));
 overlayEl.addEventListener('click', () => toggleDrawer(false));
 
 let touchStartX = 0;
@@ -482,8 +622,77 @@ function render() {
   ).join('');
 
   renderScoreCard();
+  renderMobileScores();
   renderDrawerHeats();
   renderDrawerRounds();
+}
+
+function renderMobileScores() {
+  const live = data.liveHeat;
+  const hasLive = live?.surfers?.length > 0;
+
+  document.getElementById('msLive').style.display = hasLive ? 'flex' : 'none';
+  document.getElementById('msRound').textContent = hasLive ? (live.round || '--') : 'Waiting for next heat...';
+  document.getElementById('msHeatNum').textContent = hasLive && live.heatNumber ? `Heat ${live.heatNumber}` : '';
+
+  // Footer divisions
+  document.getElementById('msFooterDivs').innerHTML = (data.divisions||[]).map(d =>
+    `<div class="div-pill ${d.status==='In the Water'?'active':''}"><span class="dot"></span>${d.name}</div>`
+  ).join('');
+
+  if (!hasLive) {
+    document.getElementById('msAthletes').innerHTML = '<div class="empty-state" style="padding:40px"><div class="empty-state-text">Heat data will appear here</div></div>';
+    return;
+  }
+
+  const sorted = [...live.surfers].sort((a,b) => b.score - a.score);
+  const top = sorted[0]?.score || 0;
+  const maxPossible = 20; // Max possible heat score
+
+  document.getElementById('msAthletes').innerHTML = sorted.map((s, i) => {
+    const isLead = s.score === top && s.score > 0;
+    const color = SINGLET[s.singlet] || '#888';
+    const diffCls = s.diff?.startsWith('Win') ? 'winning' : s.diff?.startsWith('Combo') ? 'combo' : 'needs';
+    const barWidth = Math.min(100, (s.score / maxPossible) * 100);
+
+    // Build wave pills — mark top 2 as "counted"
+    let wavesHtml = '';
+    if (s.waves?.length) {
+      const wavesSorted = [...s.waves].sort((a,b) => b - a);
+      const countedThreshold = wavesSorted.length >= 2 ? wavesSorted[1] : wavesSorted[0] || 0;
+      const usedCounted = new Set();
+      wavesHtml = s.waves.map((w, wi) => {
+        const isCounted = w >= countedThreshold && usedCounted.size < 2;
+        if (isCounted) usedCounted.add(wi);
+        return `<div class="ms-wave ${isCounted ? 'counted' : ''}">
+          <div class="ms-wave-score">${w.toFixed(2)}</div>
+          <div class="ms-wave-label">${isCounted ? 'Counted' : 'Wave ' + (wi+1)}</div>
+        </div>`;
+      }).join('');
+    }
+
+    return `
+      <div class="ms-card ${isLead ? 'leading' : ''}">
+        <div class="ms-card-top">
+          <div class="ms-singlet-bar" style="background:${color}"></div>
+          <div class="ms-card-info">
+            <div class="ms-card-row1">
+              <span class="ms-athlete-name">${s.name}</span>
+              <span class="ms-total-score ${isLead ? 'leading' : ''} ${s.score===0 ? 'zero' : ''}">${s.score ? s.score.toFixed(2) : '—'}</span>
+            </div>
+            <div class="ms-card-row2">
+              <span class="ms-rank-pill ${isLead ? 'first' : ''}">${isLead ? '1st' : i === 1 ? '2nd' : i === 2 ? '3rd' : (i+1)+'th'}</span>
+              ${s.diff ? `<span class="ms-diff-pill ${diffCls}">${s.diff}</span>` : ''}
+              <span class="ms-wave-count">${s.waveCount || 0} waves</span>
+            </div>
+          </div>
+        </div>
+        ${wavesHtml ? `<div class="ms-waves">${wavesHtml}</div>` : ''}
+        <div class="ms-score-bar-wrap">
+          <div class="ms-score-bar"><div class="ms-score-bar-fill" style="width:${barWidth}%"></div></div>
+        </div>
+      </div>`;
+  }).join('');
 }
 
 function renderScoreCard() {
@@ -596,7 +805,10 @@ setInterval(() => {
   const remaining = Math.max(0, HEAT_DURATION - elapsed);
   const m = Math.floor(remaining);
   const s = Math.floor((remaining - m) * 60);
-  document.getElementById('scoreTimer').textContent = remaining > 0 ? `~${m}:${String(s).padStart(2,'0')}` : 'ending';
+  const timerTxt = remaining > 0 ? `~${m}:${String(s).padStart(2,'0')}` : 'ending';
+  document.getElementById('scoreTimer').textContent = timerTxt;
+  const mst = document.getElementById('msTimer');
+  if (mst) mst.textContent = timerTxt;
 }, 1000);
 
 // ── Init ──
