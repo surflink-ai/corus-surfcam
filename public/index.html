@@ -61,7 +61,7 @@ body {
   background: #000;
 }
 
-.video-layer iframe {
+.video-layer iframe, .video-layer video {
   position: absolute;
   top: 50%;
   left: 50%;
@@ -298,13 +298,14 @@ body {
 
   .ui-layer {
     position: relative;
+    inset: unset;
     z-index: 10;
     display: block;
     pointer-events: auto;
   }
 
   .top-bar {
-    position: absolute;
+    position: fixed;
     top: 0; left: 0; right: 0;
     z-index: 20;
   }
@@ -319,12 +320,14 @@ body {
 }
 
 /* Hide mobile panel on desktop */
-.mobile-scores { display: none; }
+@media (min-width: 769px) {
+  .mobile-scores { display: none; }
+}
 
 /* ── Mobile Scores Panel ── */
 .ms-heat-bar {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 16px;
+  padding: 8px 12px;
   background: #0c0c14;
   border-bottom: 1px solid rgba(255,255,255,0.06);
 }
@@ -344,12 +347,12 @@ body {
 }
 
 /* Athlete cards */
-.ms-athletes { padding: 8px 12px; }
+.ms-athletes { padding: 6px 10px; }
 
 .ms-card {
   background: #111119;
-  border-radius: 14px;
-  margin-bottom: 10px;
+  border-radius: 10px;
+  margin-bottom: 6px;
   overflow: hidden;
   border: 1px solid rgba(255,255,255,0.05);
   transition: border-color 0.3s;
@@ -357,51 +360,51 @@ body {
 .ms-card.leading { border-color: rgba(45,212,168,0.2); }
 
 .ms-card-top {
-  display: flex; align-items: center; gap: 12px;
-  padding: 14px 16px 10px;
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 12px 6px;
 }
 .ms-singlet-bar {
-  width: 5px; height: 44px; border-radius: 3px; flex-shrink: 0;
+  width: 4px; height: 32px; border-radius: 2px; flex-shrink: 0;
 }
 .ms-card-info { flex: 1; min-width: 0; }
 .ms-card-row1 {
   display: flex; align-items: center; justify-content: space-between;
 }
 .ms-athlete-name {
-  font-family: var(--font-heading); font-size: 16px; font-weight: 700;
+  font-family: var(--font-heading); font-size: 14px; font-weight: 700;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   flex: 1;
 }
 .ms-total-score {
-  font-family: var(--font-mono); font-size: 28px; font-weight: 700;
-  letter-spacing: -1px; margin-left: 12px; flex-shrink: 0;
+  font-family: var(--font-mono); font-size: 22px; font-weight: 700;
+  letter-spacing: -0.5px; margin-left: 10px; flex-shrink: 0;
 }
 .ms-total-score.leading { color: var(--teal); }
 .ms-total-score.zero { color: var(--white-20); }
 
 .ms-card-row2 {
-  display: flex; align-items: center; gap: 8px; margin-top: 4px;
+  display: flex; align-items: center; gap: 6px; margin-top: 2px;
 }
 .ms-rank-pill {
-  font-family: var(--font-mono); font-size: 10px; font-weight: 600;
-  padding: 2px 8px; border-radius: 10px;
+  font-family: var(--font-mono); font-size: 9px; font-weight: 600;
+  padding: 1px 6px; border-radius: 8px;
   background: var(--white-08); color: var(--white-40);
 }
 .ms-rank-pill.first { background: rgba(45,212,168,0.12); color: var(--teal); }
 .ms-diff-pill {
-  font-family: var(--font-mono); font-size: 10px; font-weight: 600;
-  padding: 2px 8px; border-radius: 10px;
+  font-family: var(--font-mono); font-size: 9px; font-weight: 600;
+  padding: 1px 6px; border-radius: 8px;
 }
 .ms-diff-pill.winning { background: rgba(45,212,168,0.1); color: var(--teal); }
 .ms-diff-pill.needs { background: var(--white-08); color: var(--white-40); }
 .ms-diff-pill.combo { background: rgba(255,107,107,0.1); color: var(--coral); }
 .ms-wave-count {
-  font-family: var(--font-mono); font-size: 10px; color: var(--white-40);
+  font-family: var(--font-mono); font-size: 9px; color: var(--white-40);
 }
 
 /* Wave scores breakdown */
 .ms-waves {
-  display: flex; gap: 6px; padding: 0 16px 12px;
+  display: flex; gap: 4px; padding: 0 12px 6px;
   overflow-x: auto; -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
 }
@@ -409,11 +412,11 @@ body {
 
 .ms-wave {
   flex-shrink: 0;
-  min-width: 52px;
+  min-width: 42px;
   text-align: center;
-  padding: 6px 8px;
+  padding: 3px 6px;
   background: rgba(255,255,255,0.03);
-  border-radius: 8px;
+  border-radius: 6px;
   border: 1px solid rgba(255,255,255,0.04);
 }
 .ms-wave.counted {
@@ -421,26 +424,26 @@ body {
   border-color: rgba(45,212,168,0.12);
 }
 .ms-wave-score {
-  font-family: var(--font-mono); font-size: 14px; font-weight: 600;
+  font-family: var(--font-mono); font-size: 11px; font-weight: 600;
   color: var(--white);
 }
 .ms-wave.counted .ms-wave-score { color: var(--teal); }
 .ms-wave-label {
-  font-family: var(--font-mono); font-size: 8px; font-weight: 500;
+  font-family: var(--font-mono); font-size: 7px; font-weight: 500;
   color: var(--white-20); text-transform: uppercase; letter-spacing: 0.5px;
-  margin-top: 2px;
+  margin-top: 1px;
 }
 
 /* Score bar visual */
 .ms-score-bar-wrap {
-  padding: 0 16px 14px;
+  padding: 0 12px 8px;
 }
 .ms-score-bar {
-  height: 3px; width: 100%; background: rgba(255,255,255,0.04); border-radius: 2px;
+  height: 2px; width: 100%; background: rgba(255,255,255,0.04); border-radius: 1px;
   overflow: hidden;
 }
 .ms-score-bar-fill {
-  height: 100%; border-radius: 2px;
+  height: 100%; border-radius: 1px;
   background: var(--white-20);
   transition: width 0.5s ease;
 }
@@ -451,7 +454,7 @@ body {
 /* All heats button */
 .ms-footer {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 16px;
+  padding: 8px 12px;
   border-top: 1px solid rgba(255,255,255,0.06);
   background: #0c0c14;
 }
@@ -559,14 +562,94 @@ let data = null;
 let heatStarts = JSON.parse(localStorage.getItem('heatStarts')||'{}');
 let drawerOpen = false;
 
-// ── Stream ──
-(function() {
+// ── Stream (WebRTC WHEP for <3s latency) ──
+(async function() {
+  const WHEP_URL = 'https://customer-bu7i05hdb1yap6n8.cloudflarestream.com/56faab67dc45517018581598cd48b03a/webRTC/play';
   const layer = document.getElementById('videoLayer');
-  const iframe = document.createElement('iframe');
-  iframe.src = 'https://customer-bu7i05hdb1yap6n8.cloudflarestream.com/56faab67dc45517018581598cd48b03a/iframe?autoplay=true&muted=true&preload=true&controls=false&letterboxColor=transparent';
-  iframe.allow = 'accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen';
-  iframe.allowFullscreen = true;
-  layer.appendChild(iframe);
+
+  // Create video element
+  const video = document.createElement('video');
+  video.id = 'liveVideo';
+  video.autoplay = true;
+  video.muted = true;
+  video.playsInline = true;
+  video.style.cssText = 'position:absolute;top:50%;left:50%;width:177.78vh;height:56.25vw;min-width:100%;min-height:100%;transform:translate(-50%,-50%);object-fit:cover;';
+  layer.appendChild(video);
+
+  // Add mobile-specific video sizing
+  if (window.matchMedia('(max-width:768px)').matches) {
+    video.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;';
+  }
+
+  async function startWHEP() {
+    try {
+      const pc = new RTCPeerConnection({ iceServers: [] });
+
+      // Accept incoming tracks
+      pc.ontrack = (e) => {
+        if (video.srcObject !== e.streams[0]) {
+          video.srcObject = e.streams[0];
+          video.play().catch(() => {});
+        }
+      };
+
+      // We need a transceiver for audio and video to receive
+      pc.addTransceiver('video', { direction: 'recvonly' });
+      pc.addTransceiver('audio', { direction: 'recvonly' });
+
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+
+      // Wait for ICE gathering
+      await new Promise(resolve => {
+        if (pc.iceGatheringState === 'complete') return resolve();
+        pc.onicecandidate = e => { if (!e.candidate) resolve(); };
+        setTimeout(resolve, 2000);
+      });
+
+      const resp = await fetch(WHEP_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/sdp' },
+        body: pc.localDescription.sdp,
+      });
+
+      if (!resp.ok) throw new Error(`WHEP ${resp.status}: ${await resp.text()}`);
+
+      const answerSDP = await resp.text();
+      await pc.setRemoteDescription({ type: 'answer', sdp: answerSDP });
+
+      console.log('WHEP connected — WebRTC live');
+
+      // Reconnect on failure
+      pc.onconnectionstatechange = () => {
+        if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
+          console.warn('WebRTC disconnected, reconnecting...');
+          pc.close();
+          setTimeout(startWHEP, 2000);
+        }
+      };
+    } catch(e) {
+      console.error('WHEP failed, falling back to HLS iframe:', e);
+      // Fallback to iframe if WebRTC fails
+      video.remove();
+      const iframe = document.createElement('iframe');
+      iframe.src = 'https://customer-bu7i05hdb1yap6n8.cloudflarestream.com/56faab67dc45517018581598cd48b03a/iframe?autoplay=true&muted=true&preload=true&controls=false&letterboxColor=transparent';
+      iframe.allow = 'accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen';
+      iframe.allowFullscreen = true;
+      iframe.style.cssText = 'position:absolute;top:50%;left:50%;width:177.78vh;height:56.25vw;min-width:100%;min-height:100%;transform:translate(-50%,-50%);border:none;';
+      if (window.matchMedia('(max-width:768px)').matches) {
+        iframe.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;border:none;';
+      }
+      layer.appendChild(iframe);
+    }
+  }
+
+  startWHEP();
+
+  // Unmute on first tap
+  document.addEventListener('click', () => {
+    if (video.muted) { video.muted = false; }
+  }, { once: true });
 })();
 
 // ── Drawer ──
@@ -608,7 +691,11 @@ async function fetchData() {
       localStorage.setItem('heatStarts', JSON.stringify(heatStarts));
     }
     render();
-  } catch(e) { console.error(e); }
+  } catch(e) {
+    console.error(e);
+    const el = document.getElementById('msAthletes');
+    if (el && !data) el.innerHTML = '<div class="empty-state" style="padding:40px"><div class="empty-state-text">Failed to load scores — check connection</div></div>';
+  }
 }
 
 // ── Render ──
