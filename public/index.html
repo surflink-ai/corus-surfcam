@@ -617,14 +617,28 @@ let drawerOpen = false;
       pc.addTransceiver('audio', { direction: 'recvonly' });
 
       const offer = await pc.createOffer();
-      // Munge SDP: Cloudflare prefers unified-plan (default) — send offer immediately (no trickle)
       await pc.setLocalDescription(offer);
 
+      // Wait for ICE gathering to complete before sending offer
+      await new Promise((resolve) => {
+        if (pc.iceGatheringState === 'complete') return resolve();
+        const check = () => {
+          if (pc.iceGatheringState === 'complete') {
+            pc.removeEventListener('icegatheringstatechange', check);
+            resolve();
+          }
+        };
+        pc.addEventListener('icegatheringstatechange', check);
+        // Safety timeout
+        setTimeout(resolve, 3000);
+      });
+
+      console.log('ICE gathered, sending WHEP offer...');
       const resp = await fetch(WHEP_URL, {
         method: 'POST',
         mode: 'cors',
         headers: { 'Content-Type': 'application/sdp' },
-        body: offer.sdp,
+        body: pc.localDescription.sdp,
       });
 
       if (!resp.ok) {
