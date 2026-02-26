@@ -634,7 +634,10 @@ let drawerOpen = false;
       });
 
       console.log('ICE gathered, sending WHEP offer...');
-      const resp = await fetch(WHEP_URL, {
+      console.log('Offer SDP (first 200):', pc.localDescription.sdp.substring(0, 200));
+
+      // Try WHEP with standard content type
+      let resp = await fetch(WHEP_URL, {
         method: 'POST',
         mode: 'cors',
         headers: { 'Content-Type': 'application/sdp' },
@@ -642,8 +645,9 @@ let drawerOpen = false;
       });
 
       if (!resp.ok) {
-        const body = await resp.text();
-        throw new Error(`WHEP ${resp.status}: ${body}`);
+        const errBody = await resp.text();
+        console.error(`WHEP attempt 1 failed (${resp.status}):`, errBody);
+        throw new Error(`WHEP ${resp.status}: ${errBody}`);
       }
 
       // Save resource URL for WHEP DELETE (teardown)
