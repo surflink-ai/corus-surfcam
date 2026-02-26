@@ -402,6 +402,24 @@ body {
   font-family: var(--font-mono); font-size: 9px; color: var(--white-40);
 }
 
+/* Priority pill */
+.ms-priority-pill {
+  font-family: var(--font-mono); font-size: 9px; font-weight: 700;
+  padding: 1px 6px; border-radius: 8px;
+  background: var(--white-08); color: var(--white-40);
+}
+.ms-priority-pill.has-priority {
+  background: rgba(255, 215, 0, 0.15); color: var(--gold);
+}
+.surfer-priority {
+  font-family: var(--font-mono); font-size: 10px; font-weight: 700;
+  padding: 1px 5px; border-radius: 6px;
+  background: var(--white-08); color: var(--white-40);
+}
+.surfer-priority.has-priority {
+  background: rgba(255, 215, 0, 0.15); color: var(--gold);
+}
+
 /* Wave scores breakdown */
 .ms-waves {
   display: flex; gap: 4px; padding: 0 12px 6px;
@@ -557,9 +575,7 @@ body {
 
 <script>
 const SINGLET = {red:'#d41f26',white:'#fff',blue:'#007aff',green:'#34c759',yellow:'#ffd700',black:'#333',brown:'#a45d2c'};
-const HEAT_DURATION = 25;
 let data = null;
-let heatStarts = JSON.parse(localStorage.getItem('heatStarts')||'{}');
 let drawerOpen = false;
 
 // ── Stream: Native LL-HLS for minimum latency ──
@@ -663,10 +679,6 @@ async function fetchData() {
   try {
     const res = await fetch('/api/live');
     data = await res.json();
-    if (data.liveHeat?.heatId && !heatStarts[data.liveHeat.heatId]) {
-      heatStarts[data.liveHeat.heatId] = Date.now();
-      localStorage.setItem('heatStarts', JSON.stringify(heatStarts));
-    }
     render();
   } catch(e) {
     console.error(e);
@@ -698,6 +710,11 @@ function renderMobileScores() {
   document.getElementById('msLive').style.display = hasLive ? 'flex' : 'none';
   document.getElementById('msRound').textContent = hasLive ? (live.round || '--') : 'Waiting for next heat...';
   document.getElementById('msHeatNum').textContent = hasLive && live.heatNumber ? `Heat ${live.heatNumber}` : '';
+  
+  // Server-side timer
+  if (live?.timer) {
+    document.getElementById('msTimer').textContent = live.timer.remaining;
+  }
 
   // Footer divisions
   document.getElementById('msFooterDivs').innerHTML = (data.divisions||[]).map(d =>
@@ -745,6 +762,7 @@ function renderMobileScores() {
               <span class="ms-total-score ${isLead ? 'leading' : ''} ${s.score===0 ? 'zero' : ''}">${s.score ? s.score.toFixed(2) : '—'}</span>
             </div>
             <div class="ms-card-row2">
+              ${s.priority ? `<span class="ms-priority-pill ${s.priority === 'P' ? 'has-priority' : ''}">${s.priority}</span>` : ''}
               <span class="ms-rank-pill ${isLead ? 'first' : ''}">${isLead ? '1st' : i === 1 ? '2nd' : i === 2 ? '3rd' : (i+1)+'th'}</span>
               ${s.diff ? `<span class="ms-diff-pill ${diffCls}">${s.diff}</span>` : ''}
               <span class="ms-wave-count">${s.waveCount || 0} waves</span>
@@ -772,6 +790,11 @@ function renderScoreCard() {
   document.getElementById('scoreRound').textContent = live.round || '';
   document.getElementById('scoreHeatNum').textContent = live.heatNumber ? `Heat ${live.heatNumber}` : '';
   document.getElementById('scoreLive').style.display = 'flex';
+  
+  // Server timer
+  if (live.timer) {
+    document.getElementById('scoreTimer').textContent = live.timer.remaining;
+  }
 
   const sorted = [...live.surfers].sort((a,b) => b.score - a.score);
   const top = sorted[0]?.score || 0;
@@ -781,10 +804,12 @@ function renderScoreCard() {
     const color = SINGLET[s.singlet] || '#888';
     const diffClass = s.diff?.startsWith('Win') ? 'winning' : s.diff?.startsWith('Combo') ? 'combo' : 'needs';
     const wavesText = s.waves?.length ? s.waves.map(w=>w.toFixed(2)).join(' + ') : `${s.waveCount||0} waves`;
+    const prioCls = s.priority === 'P' ? 'has-priority' : '';
 
     return `
       <div class="score-surfer ${isLead?'leading':''}">
         <div class="surfer-singlet" style="background:${color}"></div>
+        ${s.priority ? `<span class="surfer-priority ${prioCls}">${s.priority}</span>` : ''}
         <span class="surfer-rank ${isLead?'first':''}">${i+1}</span>
         <div class="surfer-details">
           <div class="surfer-name">${s.name}</div>
@@ -860,16 +885,16 @@ function renderDrawerRounds() {
   }).join('') + '</div>';
 }
 
-// ── Timer ──
+// ── Timer (client-side countdown between API polls) ──
 setInterval(() => {
-  if (!data?.liveHeat?.heatId) return;
-  const start = heatStarts[data.liveHeat.heatId];
-  if (!start) return;
-  const elapsed = (Date.now() - start) / 60000;
-  const remaining = Math.max(0, HEAT_DURATION - elapsed);
-  const m = Math.floor(remaining);
-  const s = Math.floor((remaining - m) * 60);
-  const timerTxt = remaining > 0 ? `~${m}:${String(s).padStart(2,'0')}` : 'ending';
+  if (!data?.liveHeat?.timer) return;
+  // Calculate remaining based on server startedAt + elapsed since last fetch
+  const serverStart = data.liveHeat.timer.startedAt;
+  const elapsed = (Date.now() - serverStart) / 1000;
+  const remaining = Math.max(0, 25 * 60 - elapsed);
+  const m = Math.floor(remaining / 60);
+  const s = Math.floor(remaining % 60);
+  const timerTxt = remaining > 0 ? `${m}:${String(s).padStart(2, '0')}` : '0:00';
   document.getElementById('scoreTimer').textContent = timerTxt;
   const mst = document.getElementById('msTimer');
   if (mst) mst.textContent = timerTxt;

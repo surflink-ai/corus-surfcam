@@ -12,6 +12,10 @@ const WSL_URL = 'https://www.worldsurfleague.com/posts/552432/its-on-day-3-of-th
 let cache = { data: null, ts: 0 };
 const CACHE_TTL = 10_000;
 
+// Heat timer tracking — server-side for accuracy
+let heatTimer = { heatId: null, startedAt: null };
+const HEAT_DURATION_MS = 25 * 60 * 1000; // 25 min for QS
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 function parseAthlete(el) {
@@ -30,10 +34,13 @@ function parseAthlete(el) {
   else if (el.className.includes('advance')) status = 'advance';
   else if (el.className.includes('eliminated')) status = 'eliminated';
 
+  // Priority from sort-order class
+  const sortOrder = parseInt(el.className.match(/athlete-sort-order-(\d+)/)?.[1]) || 0;
+
   // Parse counted into individual wave scores
   const waves = counted ? counted.split('+').map(w => parseFloat(w.trim())).filter(n => !isNaN(n)) : [];
 
-  return { name, score, diff, counted, waves, waveCount, singlet, place, status, athleteId };
+  return { name, score, diff, counted, waves, waveCount, singlet, place, status, athleteId, sortOrder };
 }
 
 function parseWSL(html) {
@@ -134,6 +141,37 @@ async function fetchWSLData() {
 app.get('/api/live', async (req, res) => {
   try {
     const data = await fetchWSLData();
+    
+    // ── Heat Timer (server-side) ──
+    if (data.liveHeat?.heatId) {
+      if (heatTimer.heatId !== data.liveHeat.heatId) {
+        // New heat detected
+        heatTimer = { heatId: data.liveHeat.heatId, startedAt: Date.now() };
+      }
+      const elapsed = Date.now() - heatTimer.startedAt;
+      const remainingMs = Math.max(0, HEAT_DURATION_MS - elapsed);
+      const remainingSec = Math.floor(remainingMs / 1000);
+      const mins = Math.floor(remainingSec / 60);
+      const secs = remainingSec % 60;
+      data.liveHeat.timer = {
+        remaining: `${mins}:${String(secs).padStart(2, '0')}`,
+        remainingSec,
+        startedAt: heatTimer.startedAt,
+        elapsed: Math.floor(elapsed / 1000)
+      };
+    }
+
+    // ── Priority (from WSL sort-order) ──
+    if (data.liveHeat?.surfers?.length) {
+      const surfers = data.liveHeat.surfers;
+      const hasSortOrder = surfers.some(s => s.sortOrder > 0);
+      if (hasSortOrder) {
+        surfers.forEach(s => {
+          s.priority = s.sortOrder === 1 ? 'P' : String(s.sortOrder);
+        });
+      }
+    }
+
     res.json(data);
   } catch (err) {
     res.status(500).json({ error: err.message });
