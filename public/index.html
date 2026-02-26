@@ -562,30 +562,50 @@ let data = null;
 let heatStarts = JSON.parse(localStorage.getItem('heatStarts')||'{}');
 let drawerOpen = false;
 
-// ── Stream (WebRTC WHEP for <3s latency) ──
-(async function() {
+// ── Stream (WebRTC WHEP for <3s latency, with HLS fallback) ──
+(function() {
   const WHEP_URL = 'https://customer-bu7i05hdb1yap6n8.cloudflarestream.com/56faab67dc45517018581598cd48b03a/webRTC/play';
+  const HLS_URL = 'https://customer-bu7i05hdb1yap6n8.cloudflarestream.com/56faab67dc45517018581598cd48b03a/iframe?autoplay=true&muted=true&preload=true&controls=false&letterboxColor=transparent';
   const layer = document.getElementById('videoLayer');
+  const isMobile = window.matchMedia('(max-width:768px)').matches;
 
-  // Create video element
-  const video = document.createElement('video');
-  video.id = 'liveVideo';
-  video.autoplay = true;
-  video.muted = true;
-  video.playsInline = true;
-  video.style.cssText = 'position:absolute;top:50%;left:50%;width:177.78vh;height:56.25vw;min-width:100%;min-height:100%;transform:translate(-50%,-50%);object-fit:cover;';
-  layer.appendChild(video);
-
-  // Add mobile-specific video sizing
-  if (window.matchMedia('(max-width:768px)').matches) {
-    video.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;';
+  function makeVideo() {
+    const v = document.createElement('video');
+    v.id = 'liveVideo';
+    v.autoplay = true;
+    v.muted = true;
+    v.playsInline = true;
+    v.setAttribute('playsinline','');
+    v.setAttribute('webkit-playsinline','');
+    if (isMobile) v.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;';
+    return v;
   }
 
-  async function startWHEP() {
-    try {
-      const pc = new RTCPeerConnection({ iceServers: [] });
+  function fallbackHLS() {
+    console.warn('Using HLS fallback');
+    layer.innerHTML = '';
+    const iframe = document.createElement('iframe');
+    iframe.src = HLS_URL;
+    iframe.allow = 'accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen';
+    iframe.allowFullscreen = true;
+    if (isMobile) iframe.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;border:none;';
+    layer.appendChild(iframe);
+  }
 
-      // Accept incoming tracks
+  let pc = null;
+  let resourceURL = null;
+
+  async function startWHEP() {
+    const video = makeVideo();
+    layer.innerHTML = '';
+    layer.appendChild(video);
+
+    try {
+      pc = new RTCPeerConnection({
+        iceServers: [{ urls: 'stun:stun.cloudflare.com:3478' }],
+        bundlePolicy: 'max-bundle',
+      });
+
       pc.ontrack = (e) => {
         if (video.srcObject !== e.streams[0]) {
           video.srcObject = e.streams[0];
@@ -593,63 +613,56 @@ let drawerOpen = false;
         }
       };
 
-      // We need a transceiver for audio and video to receive
       pc.addTransceiver('video', { direction: 'recvonly' });
       pc.addTransceiver('audio', { direction: 'recvonly' });
 
       const offer = await pc.createOffer();
+      // Munge SDP: Cloudflare prefers unified-plan (default) — send offer immediately (no trickle)
       await pc.setLocalDescription(offer);
-
-      // Wait for ICE gathering
-      await new Promise(resolve => {
-        if (pc.iceGatheringState === 'complete') return resolve();
-        pc.onicecandidate = e => { if (!e.candidate) resolve(); };
-        setTimeout(resolve, 2000);
-      });
 
       const resp = await fetch(WHEP_URL, {
         method: 'POST',
+        mode: 'cors',
         headers: { 'Content-Type': 'application/sdp' },
-        body: pc.localDescription.sdp,
+        body: offer.sdp,
       });
 
-      if (!resp.ok) throw new Error(`WHEP ${resp.status}: ${await resp.text()}`);
+      if (!resp.ok) {
+        const body = await resp.text();
+        throw new Error(`WHEP ${resp.status}: ${body}`);
+      }
+
+      // Save resource URL for WHEP DELETE (teardown)
+      const loc = resp.headers.get('Location');
+      if (loc) resourceURL = new URL(loc, WHEP_URL).href;
 
       const answerSDP = await resp.text();
-      await pc.setRemoteDescription({ type: 'answer', sdp: answerSDP });
+      await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: answerSDP }));
 
-      console.log('WHEP connected — WebRTC live');
+      console.log('WHEP connected — WebRTC sub-second latency active');
 
-      // Reconnect on failure
       pc.onconnectionstatechange = () => {
-        if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
-          console.warn('WebRTC disconnected, reconnecting...');
+        const s = pc.connectionState;
+        console.log('WebRTC state:', s);
+        if (s === 'failed') {
           pc.close();
-          setTimeout(startWHEP, 2000);
+          console.warn('WebRTC failed, retrying in 3s...');
+          setTimeout(startWHEP, 3000);
         }
       };
+
+      // Unmute on first interaction
+      const unmute = () => { video.muted = false; document.removeEventListener('click', unmute); };
+      document.addEventListener('click', unmute);
+
     } catch(e) {
-      console.error('WHEP failed, falling back to HLS iframe:', e);
-      // Fallback to iframe if WebRTC fails
-      video.remove();
-      const iframe = document.createElement('iframe');
-      iframe.src = 'https://customer-bu7i05hdb1yap6n8.cloudflarestream.com/56faab67dc45517018581598cd48b03a/iframe?autoplay=true&muted=true&preload=true&controls=false&letterboxColor=transparent';
-      iframe.allow = 'accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen';
-      iframe.allowFullscreen = true;
-      iframe.style.cssText = 'position:absolute;top:50%;left:50%;width:177.78vh;height:56.25vw;min-width:100%;min-height:100%;transform:translate(-50%,-50%);border:none;';
-      if (window.matchMedia('(max-width:768px)').matches) {
-        iframe.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;border:none;';
-      }
-      layer.appendChild(iframe);
+      console.error('WHEP error:', e);
+      if (pc) pc.close();
+      fallbackHLS();
     }
   }
 
   startWHEP();
-
-  // Unmute on first tap
-  document.addEventListener('click', () => {
-    if (video.muted) { video.muted = false; }
-  }, { once: true });
 })();
 
 // ── Drawer ──
