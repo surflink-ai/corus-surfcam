@@ -643,7 +643,18 @@ let drawerOpen = false;
 
     if (!resp.ok) throw new Error(`WHEP ${resp.status}: ${await resp.text()}`);
 
-    await pc.setRemoteDescription({ type: 'answer', sdp: await resp.text() });
+    const answerSDP = await resp.text();
+    
+    // Log codec info from answer
+    const codecLines = answerSDP.split('\n').filter(l => l.startsWith('a=rtpmap:'));
+    codecLines.forEach(l => log('Codec: ' + l.trim()));
+    
+    // Log video direction
+    const videoSection = answerSDP.split('m=video')[1]?.split('m=audio')[0] || '';
+    const dirMatch = videoSection.match(/a=(sendrecv|recvonly|sendonly|inactive)/);
+    log('Video dir: ' + (dirMatch?.[1] || 'unknown'));
+    
+    await pc.setRemoteDescription({ type: 'answer', sdp: answerSDP });
     log('WHEP signaling done, waiting for frames...');
 
     // Wait for actual video frames or timeout
@@ -651,9 +662,27 @@ let drawerOpen = false;
     log('WHEP live! Sub-second latency ✓');
 
     pc.onconnectionstatechange = () => {
-      log('State: ' + pc.connectionState);
+      log('Conn: ' + pc.connectionState);
       if (pc.connectionState === 'failed') { pc.close(); startStream(); }
     };
+    pc.oniceconnectionstatechange = () => {
+      log('ICE: ' + pc.iceConnectionState);
+    };
+    // Log selected candidate pair after connection
+    setTimeout(() => {
+      try {
+        pc.getStats().then(stats => {
+          stats.forEach(s => {
+            if (s.type === 'inbound-rtp' && s.kind === 'video') {
+              log(`Video RTP: ${s.framesDecoded||0} decoded, ${s.bytesReceived||0} bytes, codec=${s.decoderImplementation||'?'}`);
+            }
+            if (s.type === 'candidate-pair' && s.state === 'succeeded') {
+              log(`Pair: ${s.localCandidateId} <-> ${s.remoteCandidateId}`);
+            }
+          });
+        });
+      } catch(e) {}
+    }, 3000);
 
     // Unmute on tap
     document.addEventListener('click', () => { video.muted = false; }, { once: true });
