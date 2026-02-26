@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
-const PORT = 3800;
+const PORT = process.env.PORT || 3800;
 
 const WSL_URL = 'https://www.worldsurfleague.com/posts/552432/its-on-day-3-of-the-btmi-barbados-surf-pro-and-live-like-zander-junior-pro-presented-by-diamonds-international?trigger=live';
 
@@ -142,6 +142,12 @@ app.get('/api/live', async (req, res) => {
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 
-app.listen(PORT, () => {
-  console.log(`Corus Surf Cam running at http://localhost:${PORT}`);
-});
+// Vercel serverless export
+export default app;
+
+// Local dev
+if (process.env.VERCEL !== '1') {
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Corus Surf Cam running at http://0.0.0.0:${PORT}`);
+  });
+}
