@@ -668,21 +668,35 @@ let drawerOpen = false;
     pc.oniceconnectionstatechange = () => {
       log('ICE: ' + pc.iceConnectionState);
     };
-    // Log selected candidate pair after connection
-    setTimeout(() => {
+    // Log stats every 2s for 10s
+    let statsCount = 0;
+    const statsInterval = setInterval(() => {
+      statsCount++;
+      if (statsCount > 5) { clearInterval(statsInterval); return; }
       try {
         pc.getStats().then(stats => {
+          let vBytes = 0, vFrames = 0, vPkts = 0, aBytes = 0, codec = '?', candPair = '';
           stats.forEach(s => {
             if (s.type === 'inbound-rtp' && s.kind === 'video') {
-              log(`Video RTP: ${s.framesDecoded||0} decoded, ${s.bytesReceived||0} bytes, codec=${s.decoderImplementation||'?'}`);
+              vBytes = s.bytesReceived || 0;
+              vFrames = s.framesDecoded || 0;
+              vPkts = s.packetsReceived || 0;
+              codec = s.decoderImplementation || '?';
+            }
+            if (s.type === 'inbound-rtp' && s.kind === 'audio') {
+              aBytes = s.bytesReceived || 0;
             }
             if (s.type === 'candidate-pair' && s.state === 'succeeded') {
-              log(`Pair: ${s.localCandidateId} <-> ${s.remoteCandidateId}`);
+              candPair = `${s.localCandidateId}<->${s.remoteCandidateId}`;
+            }
+            if (s.type === 'transport') {
+              log(`DTLS: ${s.dtlsState||'?'} ICE: ${s.iceLocalCandidateId||'?'}`);
             }
           });
+          log(`[${statsCount}] V:${vBytes}b/${vPkts}pkt/${vFrames}f A:${aBytes}b codec:${codec}`);
         });
       } catch(e) {}
-    }, 3000);
+    }, 2000);
 
     // Unmute on tap
     document.addEventListener('click', () => { video.muted = false; }, { once: true });
