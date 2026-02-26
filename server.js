@@ -145,9 +145,46 @@ async function fetchWSLData() {
   }
 }
 
+// Puppeteer scraper on Razer (real-time JS-rendered data)
+const PUPPETEER_URL = 'http://100.64.217.14:3810/api/live';
+
+async function fetchPuppeteerData() {
+  try {
+    const resp = await fetch(PUPPETEER_URL, { signal: AbortSignal.timeout(3000) });
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    if (!data.liveHeat || data.age > 30000) return null; // Stale or no data
+    return data;
+  } catch { return null; }
+}
+
 app.get('/api/live', async (req, res) => {
   try {
-    const data = await fetchWSLData();
+    // Try Puppeteer scraper first (real-time), fall back to HTML scraping
+    let data = await fetchPuppeteerData();
+    let source = 'puppeteer';
+    if (!data) {
+      data = await fetchWSLData();
+      source = 'html';
+    } else {
+      // Puppeteer data already has priority set, just need timer logic
+      if (data.liveHeat && !data.liveHeat.timer) {
+        // Use server-side timer as fallback
+        if (data.liveHeat.heatId && heatTimer.heatId !== data.liveHeat.heatId) {
+          heatTimer = { heatId: data.liveHeat.heatId, startedAt: Date.now() };
+        }
+        if (heatTimer.heatId === data.liveHeat.heatId) {
+          const elapsed = Date.now() - heatTimer.startedAt;
+          const remainingMs = Math.max(0, HEAT_DURATION_MS - elapsed);
+          const remainingSec = Math.floor(remainingMs / 1000);
+          const mins = Math.floor(remainingSec / 60);
+          const secs = remainingSec % 60;
+          data.liveHeat.timer = { remaining: `${mins}:${String(secs).padStart(2, '0')}`, remainingSec, startedAt: heatTimer.startedAt };
+        }
+      }
+      data.source = source;
+      return res.json(data);
+    }
     
     // ── Heat Timer (server-side) ──
     if (data.liveHeat?.heatId) {
@@ -179,6 +216,7 @@ app.get('/api/live', async (req, res) => {
       }
     }
 
+    data.source = 'html';
     res.json(data);
   } catch (err) {
     res.status(500).json({ error: err.message });
