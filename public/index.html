@@ -587,10 +587,9 @@ let data = null;
 let drawerOpen = false;
 
 // ── Stream: Native LL-HLS for minimum latency ──
-(function() {
-  const HLS_MASTER = 'https://customer-bu7i05hdb1yap6n8.cloudflarestream.com/56faab67dc45517018581598cd48b03a/manifest/video.m3u8';
-  // Use master manifest — sub-manifest IDs change each stream session
-  const HLS_URL = HLS_MASTER;
+(async function() {
+  const HLS_BASE = 'https://customer-bu7i05hdb1yap6n8.cloudflarestream.com/56faab67dc45517018581598cd48b03a/manifest/';
+  const HLS_MASTER = HLS_BASE + 'video.m3u8';
   const IFRAME_URL = 'https://customer-bu7i05hdb1yap6n8.cloudflarestream.com/56faab67dc45517018581598cd48b03a/iframe?autoplay=true&muted=true&preload=true&controls=false&letterboxColor=transparent&defaultTextTrack=off';
   const layer = document.getElementById('videoLayer');
   const isMobile = window.matchMedia('(max-width:768px)').matches;
@@ -599,6 +598,29 @@ let drawerOpen = false;
     : 'position:absolute;top:50%;left:50%;width:177.78vh;height:56.25vw;min-width:100%;min-height:100%;transform:translate(-50%,-50%);object-fit:cover;';
 
   const log = (msg) => { console.log('[stream]', msg); };
+
+  // Dynamically resolve highest quality stream from master manifest
+  let HLS_URL = HLS_MASTER;
+  try {
+    const resp = await fetch(HLS_MASTER);
+    if (resp.ok) {
+      const m3u = await resp.text();
+      const lines = m3u.split('\n');
+      let bestBw = 0, bestUrl = '';
+      for (let i = 0; i < lines.length; i++) {
+        const match = lines[i].match(/BANDWIDTH=(\d+)/);
+        if (match) {
+          const bw = parseInt(match[1]);
+          const url = lines[i + 1]?.trim();
+          if (bw > bestBw && url && !url.startsWith('#')) { bestBw = bw; bestUrl = url; }
+        }
+      }
+      if (bestUrl) {
+        HLS_URL = bestUrl.startsWith('http') ? bestUrl : HLS_BASE + bestUrl;
+        log('Forcing highest quality: ' + bestBw + 'bps → ' + bestUrl.substring(0, 40) + '...');
+      }
+    }
+  } catch (e) { log('Manifest fetch failed, using master: ' + e.message); }
 
   const video = document.createElement('video');
   
