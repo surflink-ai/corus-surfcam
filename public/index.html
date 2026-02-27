@@ -636,9 +636,33 @@ let drawerOpen = false;
       }
     }, 5000);
 
-    video.addEventListener('playing', () => log('Playing'));
-    video.addEventListener('error', (e) => log('Error: ' + (video.error?.message || e)));
-    video.play().catch(e => log('Play err: ' + e));
+    function showOffline() {
+      log('Stream offline — showing fallback');
+      layer.innerHTML = '';
+      const img = document.createElement('img');
+      img.src = 'offline-bg.png';
+      img.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;';
+      layer.appendChild(img);
+      // Retry stream every 30s
+      setInterval(() => {
+        log('Retrying stream...');
+        const probe = document.createElement('video');
+        probe.src = HLS_MASTER;
+        probe.muted = true;
+        probe.playsInline = true;
+        probe.addEventListener('loadeddata', () => { log('Stream back — reloading'); location.reload(); });
+        probe.addEventListener('error', () => log('Still offline'));
+        probe.play().catch(() => {});
+        setTimeout(() => { probe.src = ''; }, 10000);
+      }, 30000);
+    }
+
+    video.addEventListener('playing', () => { log('Playing'); layer.style.background = 'none'; });
+    video.addEventListener('error', (e) => { log('Error: ' + (video.error?.message || e)); showOffline(); });
+    video.play().catch(e => { log('Play err: ' + e); showOffline(); });
+
+    // If no data after 8s, assume offline
+    setTimeout(() => { if (video.readyState < 2) showOffline(); }, 8000);
 
     document.addEventListener('click', () => { video.muted = false; }, { once: true });
 
@@ -652,6 +676,11 @@ let drawerOpen = false;
     iframe.style.cssText = vStyle + 'border:none;';
     layer.innerHTML = '';
     layer.appendChild(iframe);
+
+    // Fallback for iframe: if stream is down, CF returns error page
+    iframe.addEventListener('error', () => {
+      layer.innerHTML = '<img src="offline-bg.png" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;">';
+    });
   }
 })();
 
