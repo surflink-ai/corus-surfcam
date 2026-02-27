@@ -108,6 +108,13 @@ body {
   letter-spacing: 1.5px; text-transform: uppercase;
 }
 .live-pill .dot { width: 5px; height: 5px; background: var(--live-red); border-radius: 50%; animation: pulse-dot 1.5s ease-in-out infinite; box-shadow: 0 0 6px var(--live-red); }
+.viewer-pill {
+  display: flex; align-items: center; gap: 5px; padding: 4px 10px;
+  background: rgba(255,255,255,0.1); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.15); border-radius: 20px;
+  font-family: var(--font-mono); font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.8);
+  letter-spacing: 0.5px;
+}
 
 @keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 
@@ -501,6 +508,7 @@ body {
     </div>
     <div class="top-right">
       <div class="live-pill" id="livePill" style="display:none"><span class="dot"></span>LIVE</div>
+      <div class="viewer-pill" id="viewerPill" style="display:none"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg><span id="viewerCount">0</span></div>
       <button class="scores-btn" id="drawerBtn" aria-label="Scores">☰</button>
     </div>
   </div>
@@ -905,6 +913,38 @@ setInterval(() => {
 // ── Init ──
 fetchData();
 setInterval(fetchData, 5000);
+</script>
+
+<!-- Viewer Count via Supabase Realtime Presence -->
+<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+(function() {
+  const SUPABASE_URL = 'https://mxslvekphugdjslajxcr.supabase.co';
+  const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im14c2x2ZWtwaHVnZGpzbGFqeGNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyMDMxMjEsImV4cCI6MjA4Nzc3OTEyMX0.uyZgyA1RAO1PzsY26-hK9Oqye6LeKi8r8T5WaWHWsMk';
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON, { realtime: { params: { eventsPerSecond: 2 } } });
+  const uid = crypto.randomUUID();
+  const pill = document.getElementById('viewerPill');
+  const countEl = document.getElementById('viewerCount');
+
+  const channel = sb.channel('surfcam-viewers', { config: { presence: { key: uid } } });
+
+  function updateCount() {
+    const state = channel.presenceState();
+    const n = Object.keys(state).length;
+    countEl.textContent = n;
+    pill.style.display = n > 0 ? 'flex' : 'none';
+  }
+
+  channel.on('presence', { event: 'sync' }, updateCount)
+    .subscribe(async (status) => {
+      if (status === 'SUBSCRIBED') {
+        await channel.track({ joined: Date.now() });
+        console.log('[presence] Tracking viewer');
+      }
+    });
+
+  window.addEventListener('beforeunload', () => channel.untrack());
+})();
 </script>
 </body>
 </html>
