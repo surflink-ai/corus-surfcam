@@ -581,9 +581,8 @@ let drawerOpen = false;
 // ── Stream: Native LL-HLS for minimum latency ──
 (function() {
   const HLS_MASTER = 'https://customer-bu7i05hdb1yap6n8.cloudflarestream.com/56faab67dc45517018581598cd48b03a/manifest/video.m3u8';
-  // Force 1080p — direct sub-manifest
-  const HLS_1080 = 'https://customer-bu7i05hdb1yap6n8.cloudflarestream.com/56faab67dc45517018581598cd48b03a/manifest/stream_tf0d8569ae7f6cc0b2950c65cfdb6c5ee_r1464684338.m3u8?llhlsHBs=0.5';
-  const HLS_URL = HLS_1080;
+  // Use master manifest — sub-manifest IDs change each stream session
+  const HLS_URL = HLS_MASTER;
   const IFRAME_URL = 'https://customer-bu7i05hdb1yap6n8.cloudflarestream.com/56faab67dc45517018581598cd48b03a/iframe?autoplay=true&muted=true&preload=true&controls=false&letterboxColor=transparent&defaultTextTrack=off';
   const layer = document.getElementById('videoLayer');
   const isMobile = window.matchMedia('(max-width:768px)').matches;
