@@ -256,6 +256,46 @@ body {
 .empty-state-icon { font-size: 36px; margin-bottom: 12px; opacity: 0.5; }
 .empty-state-text { font-size: 14px; }
 
+/* Event toggle */
+.event-toggle, .ms-event-toggle {
+  display: flex; gap: 4px; padding: 6px 10px;
+  border-bottom: 1px solid var(--glass-border-light);
+}
+.event-btn {
+  flex: 1; padding: 5px 8px; border: 1px solid var(--glass-border); border-radius: 8px;
+  background: transparent; color: var(--white-40); font-family: var(--font-mono);
+  font-size: 10px; font-weight: 600; letter-spacing: 0.5px; cursor: pointer;
+  transition: all 0.2s; text-align: center;
+}
+.event-btn.active { background: rgba(20,120,181,0.15); color: var(--ocean); border-color: rgba(20,120,181,0.3); }
+.event-btn:active { transform: scale(0.95); }
+
+/* Coming up card */
+.coming-up-card {
+  text-align: center; padding: 20px 16px;
+  background: rgba(20,120,181,0.05); border-radius: var(--radius-sm);
+  margin: 8px 12px;
+  border: 1px dashed rgba(20,120,181,0.2);
+}
+.coming-up-label { font-family: var(--font-mono); font-size: 9px; font-weight: 600; color: var(--ocean); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 6px; }
+.coming-up-title { font-family: var(--font-heading); font-size: 16px; font-weight: 600; color: var(--white); margin-bottom: 4px; }
+.coming-up-sub { font-size: 12px; color: var(--white-40); }
+
+/* Stats */
+.stat-card { background: var(--white-08); border-radius: var(--radius-sm); padding: 14px 16px; margin: 6px 20px; }
+.stat-card-title { font-family: var(--font-mono); font-size: 9px; font-weight: 600; color: var(--ocean); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
+.stat-row { display: flex; align-items: center; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid var(--glass-border-light); }
+.stat-row:last-child { border-bottom: none; }
+.stat-rank { font-family: var(--font-mono); font-size: 10px; color: var(--white-40); width: 20px; }
+.stat-name { font-family: var(--font-heading); font-size: 12px; font-weight: 500; flex: 1; margin: 0 8px; }
+.stat-meta { font-family: var(--font-mono); font-size: 9px; color: var(--white-40); margin-right: 8px; }
+.stat-value { font-family: var(--font-mono); font-size: 14px; font-weight: 700; color: var(--teal); min-width: 40px; text-align: right; }
+.stat-value.excellent { color: var(--ocean); }
+.stat-summary { display: flex; gap: 12px; padding: 8px 20px; margin-top: 4px; }
+.stat-summary-item { flex: 1; text-align: center; background: var(--white-08); border-radius: var(--radius-sm); padding: 12px 8px; }
+.stat-summary-num { font-family: var(--font-mono); font-size: 22px; font-weight: 700; color: var(--teal); }
+.stat-summary-label { font-family: var(--font-mono); font-size: 8px; color: var(--white-40); letter-spacing: 1px; text-transform: uppercase; margin-top: 2px; }
+
 .skeleton { background: linear-gradient(90deg, var(--white-08) 0%, rgba(255,255,255,0.04) 50%, var(--white-08) 100%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: var(--radius-xs); }
 @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 .skeleton-row { height: 44px; margin: 6px 14px; }
@@ -519,6 +559,11 @@ body {
 
   <div class="bottom-bar">
     <div class="score-card" id="scoreCard">
+      <div class="event-toggle" id="eventToggle">
+        <button class="event-btn active" data-event="auto">AUTO</button>
+        <button class="event-btn" data-event="qs6000">QS 6000</button>
+        <button class="event-btn" data-event="junior">JR PRO</button>
+      </div>
       <div class="score-card-header">
         <div class="score-heat-info">
           <span class="score-heat-round" id="scoreRound">—</span>
@@ -542,6 +587,11 @@ body {
 
   <!-- MOBILE SCORES PANEL -->
   <div class="mobile-scores" id="mobileScores">
+    <div class="ms-event-toggle" id="msEventToggle">
+      <button class="event-btn active" data-event="auto">AUTO</button>
+      <button class="event-btn" data-event="qs6000">QS 6000</button>
+      <button class="event-btn" data-event="junior">JR PRO</button>
+    </div>
     <div class="ms-heat-bar">
       <div class="ms-heat-left">
         <span class="ms-round" id="msRound">--</span>
@@ -567,26 +617,30 @@ body {
 <div class="drawer" id="drawer">
   <div class="drawer-handle-area"><div class="drawer-handle"></div></div>
   <div class="drawer-header">
-    <div class="drawer-title">Barbados Surf Pro</div>
+    <div class="drawer-title" id="drawerTitle">Barbados Surf Pro</div>
     <div class="drawer-subtitle">
-      <span class="drawer-tier">QS 6,000</span>
+      <span class="drawer-tier" id="drawerTier">QS 6,000</span>
       <span>Soup Bowl, Bathsheba</span>
     </div>
   </div>
   <div class="drawer-tabs">
     <button class="drawer-tab active" data-tab="heats">Heats</button>
     <button class="drawer-tab" data-tab="rounds">Rounds</button>
+    <button class="drawer-tab" data-tab="stats">Stats</button>
   </div>
   <div class="drawer-scroll">
     <div class="tab-panel active" id="panel-heats"><div id="drawerHeats"></div></div>
     <div class="tab-panel" id="panel-rounds"><div id="drawerRounds"></div></div>
+    <div class="tab-panel" id="panel-stats"><div id="drawerStats"></div></div>
   </div>
 </div>
 
 <script>
 const SINGLET = {red:'#d41f26',white:'#fff',blue:'#007aff',green:'#34c759',yellow:'#ffd700',black:'#333',brown:'#a45d2c'};
 let data = null;
+let statsData = null;
 let drawerOpen = false;
+let selectedEvent = 'auto'; // auto, qs6000, junior
 
 // ── Stream: Native LL-HLS for minimum latency ──
 (async function() {
@@ -769,13 +823,26 @@ document.querySelectorAll('.drawer-tab').forEach(tab => {
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
     tab.classList.add('active');
     document.getElementById(`panel-${tab.dataset.tab}`).classList.add('active');
+    if (tab.dataset.tab === 'stats' && !statsData) fetchStats();
+  });
+});
+
+// ── Event toggle ──
+document.querySelectorAll('.event-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    selectedEvent = btn.dataset.event;
+    document.querySelectorAll('.event-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll(`.event-btn[data-event="${selectedEvent}"]`).forEach(b => b.classList.add('active'));
+    fetchData();
   });
 });
 
 // ── Fetch ──
 async function fetchData() {
   try {
-    const res = await fetch('/api/live');
+    let url = '/api/live';
+    if (selectedEvent !== 'auto') url += `?event=${selectedEvent}`;
+    const res = await fetch(url);
     data = await res.json();
     render();
   } catch(e) {
@@ -785,20 +852,44 @@ async function fetchData() {
   }
 }
 
+async function fetchStats() {
+  try {
+    const res = await fetch('/api/stats');
+    statsData = await res.json();
+    renderDrawerStats();
+  } catch(e) { console.error('Stats fetch failed:', e); }
+}
+
 // ── Render ──
 function render() {
   if (!data) return;
 
-  document.getElementById('livePill').style.display = data.liveHeat ? 'flex' : 'none';
+  const hasLive = !!data.liveHeat;
+  document.getElementById('livePill').style.display = hasLive ? 'flex' : 'none';
 
-  document.getElementById('divisionPills').innerHTML = (data.divisions||[]).map(d =>
-    `<div class="div-pill ${d.status==='In the Water'?'active':''}"><span class="dot"></span>${d.name}</div>`
+  // Update drawer title based on current event
+  const eventName = data.event || 'Barbados Surf Pro';
+  const divisionLabel = data.division || '';
+  document.getElementById('drawerTitle').textContent = eventName === 'JR PRO' ? 'Live Like Zander Junior Pro' : 'Barbados Surf Pro';
+  document.getElementById('drawerTier').textContent = eventName || 'QS 6,000';
+
+  // Division pills — use allDivisions from API
+  const allDivs = data.allDivisions || {};
+  const currentEventKey = data.liveEvent || selectedEvent;
+  const relevantDivs = Object.values(allDivs).filter(d => selectedEvent === 'auto' || d.eventKey === selectedEvent);
+
+  document.getElementById('divisionPills').innerHTML = relevantDivs.map(d =>
+    `<div class="div-pill ${d.isLive ? 'active' : ''}" data-event="${d.eventKey}" data-div="${d.divKey}"><span class="dot"></span>${d.label}</div>`
+  ).join('');
+  document.getElementById('msFooterDivs').innerHTML = relevantDivs.map(d =>
+    `<div class="div-pill ${d.isLive ? 'active' : ''}" data-event="${d.eventKey}" data-div="${d.divKey}"><span class="dot"></span>${d.label}</div>`
   ).join('');
 
   renderScoreCard();
   renderMobileScores();
   renderDrawerHeats();
   renderDrawerRounds();
+  if (statsData) renderDrawerStats();
 }
 
 function renderMobileScores() {
@@ -820,7 +911,13 @@ function renderMobileScores() {
   ).join('');
 
   if (!hasLive) {
-    document.getElementById('msAthletes').innerHTML = '<div class="empty-state" style="padding:40px"><div class="empty-state-text">Heat data will appear here</div></div>';
+    // Show "Coming Up" with next division info
+    const allDivs = Object.values(data.allDivisions || {});
+    const standby = allDivs.filter(d => d.status === 'standby' || d.status === 'upcoming');
+    const comingUpHtml = standby.length > 0
+      ? standby.map(d => `<div class="coming-up-card"><div class="coming-up-label">Coming Up</div><div class="coming-up-title">${d.eventName} — ${d.label}</div><div class="coming-up-sub">Standby</div></div>`).join('')
+      : '<div class="coming-up-card"><div class="coming-up-label">Next Heat</div><div class="coming-up-title">Waiting for next heat</div><div class="coming-up-sub">Stay tuned</div></div>';
+    document.getElementById('msAthletes').innerHTML = comingUpHtml;
     return;
   }
 
@@ -878,10 +975,17 @@ function renderMobileScores() {
 function renderScoreCard() {
   const live = data.liveHeat;
   if (!live?.surfers?.length) {
-    document.getElementById('scoreRound').textContent = 'Waiting for next heat...';
-    document.getElementById('scoreHeatNum').textContent = '';
+    const allDivs = Object.values(data.allDivisions || {});
+    const standby = allDivs.filter(d => d.status === 'standby');
+    if (standby.length > 0) {
+      document.getElementById('scoreRound').textContent = 'Coming Up';
+      document.getElementById('scoreHeatNum').textContent = standby.map(d => `${d.eventName} ${d.label}`).join(' · ');
+    } else {
+      document.getElementById('scoreRound').textContent = 'Waiting for next heat...';
+      document.getElementById('scoreHeatNum').textContent = '';
+    }
     document.getElementById('scoreLive').style.display = 'none';
-    document.getElementById('scoreSurfers').innerHTML = '<div class="empty-state"><div class="empty-state-text">Heat data will appear here</div></div>';
+    document.getElementById('scoreSurfers').innerHTML = '<div class="empty-state"><div class="empty-state-text">Heat data will appear when in the water</div></div>';
     return;
   }
 
@@ -974,13 +1078,87 @@ function renderDrawerHeat(heat, isLive) {
 
 function renderDrawerRounds() {
   const el = document.getElementById('drawerRounds');
-  if (!data.rounds?.length) { el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📋</div><div class="empty-state-text">No round info</div></div>'; return; }
-  el.innerHTML = '<div class="bracket-list">' + data.rounds.map(r => {
-    let badge = 'badge-upcoming';
-    if (r.status.includes('Progress')) badge = 'badge-live';
-    else if (r.status.includes('Completed')) badge = 'badge-done';
-    return `<div class="bracket-item"><span class="bracket-name">${r.name}</span><span class="bracket-heats">${r.heats} heat${r.heats>1?'s':''}</span><span class="drawer-round-badge ${badge}">${r.status}</span></div>`;
-  }).join('') + '</div>';
+  // Fetch rounds from the rounds API for current event/division
+  const eventKey = data.liveEvent || 'qs6000';
+  const divKey = data.liveDivision || 'men';
+  fetch(`/api/rounds?event=${eventKey}&division=${divKey}`)
+    .then(r => r.json())
+    .then(roundData => {
+      if (!roundData.roundInfo?.length && !roundData.heats?.length) {
+        el.innerHTML = '<div class="empty-state"><div class="empty-state-text">No round info available</div></div>';
+        return;
+      }
+      let html = '';
+      // Show round info
+      if (roundData.roundInfo?.length) {
+        html += '<div class="bracket-list">';
+        roundData.roundInfo.forEach(r => {
+          let badge = 'badge-upcoming';
+          const status = (r.status || r.heatCount || '').toLowerCase();
+          if (/progress|live|water/i.test(status)) badge = 'badge-live';
+          else if (/completed|done/i.test(status)) badge = 'badge-done';
+          html += `<div class="bracket-item"><span class="bracket-name">${r.name}</span><span class="bracket-heats">${r.heatCount}</span><span class="drawer-round-badge ${badge}">${r.status || ''}</span></div>`;
+        });
+        html += '</div>';
+      }
+      // Show all heats
+      if (roundData.heats?.length) {
+        html += '<div style="padding:8px 20px 4px"><div class="drawer-round-header"><span class="drawer-round-name">All Heats</span></div></div>';
+        roundData.heats.forEach(h => {
+          html += renderDrawerHeat({
+            heatNumber: h.heatNumber,
+            surfers: h.athletes,
+            round: h.label
+          }, h.isLive);
+        });
+      }
+      el.innerHTML = html;
+    })
+    .catch(() => { el.innerHTML = '<div class="empty-state"><div class="empty-state-text">Failed to load rounds</div></div>'; });
+}
+
+function renderDrawerStats() {
+  const el = document.getElementById('drawerStats');
+  if (!statsData) { el.innerHTML = '<div class="empty-state"><div class="empty-state-text">Loading stats...</div></div>'; return; }
+
+  let html = '';
+
+  // Summary cards
+  html += '<div class="stat-summary">';
+  html += `<div class="stat-summary-item"><div class="stat-summary-num">${statsData.topWaves?.[0]?.score?.toFixed(2) || '--'}</div><div class="stat-summary-label">Best Wave</div></div>`;
+  html += `<div class="stat-summary-item"><div class="stat-summary-num">${statsData.topHeatTotals?.[0]?.total?.toFixed(2) || '--'}</div><div class="stat-summary-label">Best Heat</div></div>`;
+  html += `<div class="stat-summary-item"><div class="stat-summary-num">${statsData.excellentWaves || 0}</div><div class="stat-summary-label">8+ Waves</div></div>`;
+  html += '</div>';
+
+  // Top Waves
+  if (statsData.topWaves?.length) {
+    html += '<div class="stat-card"><div class="stat-card-title">Highest Waves</div>';
+    statsData.topWaves.slice(0, 10).forEach((w, i) => {
+      html += `<div class="stat-row">
+        <span class="stat-rank">${i + 1}</span>
+        <span class="stat-name">${w.athlete}</span>
+        <span class="stat-meta">${w.event}</span>
+        <span class="stat-value ${w.score >= 8 ? 'excellent' : ''}">${w.score.toFixed(2)}</span>
+      </div>`;
+    });
+    html += '</div>';
+  }
+
+  // Top Heat Totals
+  if (statsData.topHeatTotals?.length) {
+    html += '<div class="stat-card"><div class="stat-card-title">Highest Heat Totals</div>';
+    statsData.topHeatTotals.slice(0, 10).forEach((t, i) => {
+      html += `<div class="stat-row">
+        <span class="stat-rank">${i + 1}</span>
+        <span class="stat-name">${t.athlete}</span>
+        <span class="stat-meta">${t.event}</span>
+        <span class="stat-value">${t.total.toFixed(2)}</span>
+      </div>`;
+    });
+    html += '</div>';
+  }
+
+  el.innerHTML = html;
 }
 
 // ── Timer (client-side countdown between API polls) ──
@@ -1000,7 +1178,9 @@ setInterval(() => {
 
 // ── Init ──
 fetchData();
+fetchStats();
 setInterval(fetchData, 5000);
+setInterval(fetchStats, 30000); // Stats every 30s
 </script>
 
 <!-- Viewer Count via Supabase Realtime Presence -->

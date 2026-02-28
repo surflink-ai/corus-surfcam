@@ -146,14 +146,15 @@ async function fetchWSLData() {
 }
 
 // Puppeteer scraper on Razer (real-time JS-rendered data)
-const PUPPETEER_URL = 'http://100.64.217.14:3810/api/live';
+const PUPPETEER_BASE = 'http://100.64.217.14:3810';
 
-async function fetchPuppeteerData() {
+async function fetchPuppeteerData(query) {
   try {
-    const resp = await fetch(PUPPETEER_URL, { signal: AbortSignal.timeout(3000) });
+    const qs = query ? '?' + new URLSearchParams(query).toString() : '';
+    const resp = await fetch(`${PUPPETEER_BASE}/api/live${qs}`, { signal: AbortSignal.timeout(3000) });
     if (!resp.ok) return null;
     const data = await resp.json();
-    if (!data.liveHeat || data.age > 30000) return null; // Stale or no data
+    if (data.age > 60000) return null; // Stale
     return data;
   } catch { return null; }
 }
@@ -161,7 +162,7 @@ async function fetchPuppeteerData() {
 app.get('/api/live', async (req, res) => {
   try {
     // Try Puppeteer scraper first (real-time), fall back to HTML scraping
-    let data = await fetchPuppeteerData();
+    let data = await fetchPuppeteerData(req.query);
     let source = 'puppeteer';
     if (!data) {
       data = await fetchWSLData();
@@ -221,6 +222,31 @@ app.get('/api/live', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+// Proxy new scraper endpoints
+const SCRAPER_BASE = 'http://100.64.217.14:3810';
+
+app.get('/api/events', async (req, res) => {
+  try {
+    const r = await fetch(`${SCRAPER_BASE}/api/events`, { signal: AbortSignal.timeout(3000) });
+    res.json(await r.json());
+  } catch { res.json({ error: 'Scraper unavailable', events: {} }); }
+});
+
+app.get('/api/rounds', async (req, res) => {
+  try {
+    const qs = new URLSearchParams(req.query).toString();
+    const r = await fetch(`${SCRAPER_BASE}/api/rounds?${qs}`, { signal: AbortSignal.timeout(3000) });
+    res.json(await r.json());
+  } catch { res.json({ error: 'Scraper unavailable', heats: [], roundInfo: [] }); }
+});
+
+app.get('/api/stats', async (req, res) => {
+  try {
+    const r = await fetch(`${SCRAPER_BASE}/api/stats`, { signal: AbortSignal.timeout(3000) });
+    res.json(await r.json());
+  } catch { res.json({ error: 'Scraper unavailable', topWaves: [], topHeatTotals: [] }); }
 });
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
