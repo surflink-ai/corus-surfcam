@@ -661,11 +661,12 @@ let drawerOpen = false;
     function showOffline() {
       log('Stream offline — showing fallback');
       layer.innerHTML = `
-        <div style="position:absolute;top:0;left:0;width:100%;height:100%;background:#0a2a3a;">
-          <img src="offline-bg.png" style="width:100%;height:100%;object-fit:cover;opacity:0.85;">
+        <div style="position:absolute;top:0;left:0;width:100%;height:100%;background:linear-gradient(165deg, #062542 0%, #0B3D6B 25%, #1478B5 45%, #2AAFB0 60%, #D4944A 100%);">
+          <svg style="position:absolute;bottom:0;left:0;width:100%;height:40%;opacity:0.08;" viewBox="0 0 1440 320" preserveAspectRatio="none"><path fill="#fff" d="M0,224L60,213.3C120,203,240,181,360,186.7C480,192,600,224,720,229.3C840,235,960,213,1080,192C1200,171,1320,149,1380,138.7L1440,128L1440,320L0,320Z"/></svg>
+          <svg style="position:absolute;bottom:8%;left:0;width:100%;height:30%;opacity:0.05;" viewBox="0 0 1440 320" preserveAspectRatio="none"><path fill="#fff" d="M0,288L48,272C96,256,192,224,288,213.3C384,203,480,213,576,229.3C672,245,768,267,864,261.3C960,256,1056,224,1152,208C1248,192,1344,192,1392,192L1440,192L1440,320L0,320Z"/></svg>
           <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;">
-            <div style="font-family:'SF Pro Display',-apple-system,sans-serif;font-size:clamp(1.5rem,4vw,2.8rem);font-weight:600;color:#fff;letter-spacing:0.08em;text-transform:uppercase;line-height:1.2;text-shadow:0 2px 20px rgba(0,0,0,0.4);">We'll Be Right Back</div>
-            <div style="font-family:'SF Mono',ui-monospace,monospace;font-size:clamp(0.6rem,1.5vw,0.8rem);color:rgba(255,255,255,0.45);letter-spacing:0.25em;text-transform:uppercase;margin-top:16px;">cam.corus.surf</div>
+            <div style="font-family:'SF Pro Display',-apple-system,sans-serif;font-size:clamp(1.5rem,4vw,2.8rem);font-weight:600;color:#fff;letter-spacing:0.08em;text-transform:uppercase;line-height:1.2;text-shadow:0 2px 30px rgba(0,0,0,0.3);">We'll Be Right Back</div>
+            <div style="font-family:'SF Mono',ui-monospace,monospace;font-size:clamp(0.6rem,1.5vw,0.8rem);color:rgba(255,255,255,0.5);letter-spacing:0.25em;text-transform:uppercase;margin-top:16px;">cam.corus.surf</div>
           </div>
         </div>
       `;
@@ -728,11 +729,11 @@ let drawerOpen = false;
     // Fallback for iframe: if stream is down, CF returns error page
     iframe.addEventListener('error', () => {
       layer.innerHTML = `
-        <div style="position:absolute;top:0;left:0;width:100%;height:100%;background:#0a2a3a;">
-          <img src="offline-bg.png" style="width:100%;height:100%;object-fit:cover;opacity:0.85;">
+        <div style="position:absolute;top:0;left:0;width:100%;height:100%;background:linear-gradient(165deg, #062542 0%, #0B3D6B 25%, #1478B5 45%, #2AAFB0 60%, #D4944A 100%);">
+          <svg style="position:absolute;bottom:0;left:0;width:100%;height:40%;opacity:0.08;" viewBox="0 0 1440 320" preserveAspectRatio="none"><path fill="#fff" d="M0,224L60,213.3C120,203,240,181,360,186.7C480,192,600,224,720,229.3C840,235,960,213,1080,192C1200,171,1320,149,1380,138.7L1440,128L1440,320L0,320Z"/></svg>
           <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;">
-            <div style="font-family:'SF Pro Display',-apple-system,sans-serif;font-size:clamp(1.5rem,4vw,2.8rem);font-weight:600;color:#fff;letter-spacing:0.08em;text-transform:uppercase;line-height:1.2;text-shadow:0 2px 20px rgba(0,0,0,0.4);">We'll Be Right Back</div>
-            <div style="font-family:'SF Mono',ui-monospace,monospace;font-size:clamp(0.6rem,1.5vw,0.8rem);color:rgba(255,255,255,0.45);letter-spacing:0.25em;text-transform:uppercase;margin-top:16px;">cam.corus.surf</div>
+            <div style="font-family:'SF Pro Display',-apple-system,sans-serif;font-size:clamp(1.5rem,4vw,2.8rem);font-weight:600;color:#fff;letter-spacing:0.08em;text-transform:uppercase;line-height:1.2;text-shadow:0 2px 30px rgba(0,0,0,0.3);">We'll Be Right Back</div>
+            <div style="font-family:'SF Mono',ui-monospace,monospace;font-size:clamp(0.6rem,1.5vw,0.8rem);color:rgba(255,255,255,0.5);letter-spacing:0.25em;text-transform:uppercase;margin-top:16px;">cam.corus.surf</div>
           </div>
         </div>
       `;
