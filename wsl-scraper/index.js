@@ -243,15 +243,35 @@ async function scrapeAll() {
       store.liveTimer = live.timer;
       store.liveRound = live.round;
 
-      // Determine which event/division is live from division statuses (most reliable)
-      // The division pages themselves say "In the Water" vs "Standby"
+      // Determine which event/division is live
+      // Multiple divisions can show "live" status (round in progress).
+      // Cross-reference: check which division has a live heat in the grid with matching athletes
       let foundLive = false;
+      const liveSurferNames = new Set(store.liveHeat.surfers.map(s => s.name.toLowerCase()));
+      
       for (const [key, div] of Object.entries(store.divisions)) {
-        if (div.status === 'live') {
-          store.liveEvent = div.eventKey;
-          store.liveDivision = div.divKey;
-          foundLive = true;
-          break;
+        if (div.status === 'live' && div.heats?.length) {
+          // Check if any athletes in this division's heats match the live heat surfers
+          const divAthletes = new Set();
+          div.heats.forEach(h => h.athletes?.forEach(a => divAthletes.add(a.name.toLowerCase())));
+          const overlap = [...liveSurferNames].filter(n => divAthletes.has(n));
+          if (overlap.length >= 2) {
+            store.liveEvent = div.eventKey;
+            store.liveDivision = div.divKey;
+            foundLive = true;
+            break;
+          }
+        }
+      }
+      // Fallback: just pick first live division
+      if (!foundLive) {
+        for (const [key, div] of Object.entries(store.divisions)) {
+          if (div.status === 'live') {
+            store.liveEvent = div.eventKey;
+            store.liveDivision = div.divKey;
+            foundLive = true;
+            break;
+          }
         }
       }
       // Fallback to page label parsing if no division data yet
@@ -370,8 +390,83 @@ function computeStats() {
 const app = express();
 app.use((req, res, next) => { res.setHeader('Access-Control-Allow-Origin', '*'); next(); });
 
-// Live heat — backward compatible + supports ?event=junior&division=men
+// Live heat — backward compatible + supports ?event=junior
 app.get('/api/live', (req, res) => {
+  const filterEvent = req.query.event; // qs6000, junior, or omitted for auto
+  
+  // Build allDivisions first (always included)
+  const allDivisions = Object.fromEntries(
+    Object.entries(EVENTS).flatMap(([ek, ev]) =>
+      Object.entries(ev.divisions).map(([dk, dv]) => {
+        const storeKey = `${ek}_${dk}`;
+        return [`${ek}_${dk}`, {
+          eventKey: ek,
+          divKey: dk,
+          eventName: ev.shortName,
+          label: dv.label,
+          status: store.divisions[storeKey]?.status || 'unknown',
+          isLive: store.liveEvent === ek && store.liveDivision === dk
+        }];
+      })
+    )
+  );
+
+  // If filtering by event and it's NOT the currently live event,
+  // return the most recent completed heat data from that event's divisions
+  if (filterEvent && filterEvent !== store.liveEvent && EVENTS[filterEvent]) {
+    const event = EVENTS[filterEvent];
+    // Find the division with the most recent/best data
+    let bestDiv = null;
+    let bestKey = null;
+    for (const [dk, dv] of Object.entries(event.divisions)) {
+      const storeKey = `${filterEvent}_${dk}`;
+      const stored = store.divisions[storeKey];
+      if (stored && stored.heats?.length > 0) {
+        if (!bestDiv || stored.heats.length > bestDiv.heats.length) {
+          bestDiv = stored;
+          bestKey = dk;
+        }
+      }
+    }
+
+    // Return last completed heat as "most recent" for this event
+    let lastHeat = null;
+    if (bestDiv?.heats?.length) {
+      const completed = bestDiv.heats.filter(h => h.isComplete);
+      const latest = completed[completed.length - 1];
+      if (latest) {
+        lastHeat = {
+          heatId: latest.heatId || '',
+          heatNumber: latest.heatNumber,
+          round: latest.label || '',
+          timer: null,
+          surfers: latest.athletes.map(a => ({
+            ...a,
+            priority: a.sortOrder === 1 ? 'P' : a.sortOrder > 0 ? String(a.sortOrder) : null
+          }))
+        };
+      }
+    }
+
+    return res.json({
+      source: 'puppeteer-multi-event',
+      timestamp: store.lastUpdate,
+      age: Date.now() - store.lastUpdate,
+      liveEvent: store.liveEvent,
+      liveDivision: store.liveDivision,
+      filteredEvent: filterEvent,
+      event: event.shortName,
+      division: bestKey ? event.divisions[bestKey].label : null,
+      timer: null,
+      round: lastHeat?.round || '',
+      status: bestDiv?.status || 'standby',
+      liveHeat: lastHeat,
+      isFiltered: true,
+      allDivisions
+    });
+  }
+
+  // Default: return the current live heat
   const response = {
     source: 'puppeteer-multi-event',
     timestamp: store.lastUpdate,
@@ -392,22 +487,7 @@ app.get('/api/live', (req, res) => {
         priority: s.sortOrder === 1 ? 'P' : s.sortOrder > 0 ? String(s.sortOrder) : null
       }))
     } : null,
-    // Include status of all divisions so frontend knows what's coming up
-    allDivisions: Object.fromEntries(
-      Object.entries(EVENTS).flatMap(([ek, ev]) =>
-        Object.entries(ev.divisions).map(([dk, dv]) => {
-          const storeKey = `${ek}_${dk}`;
-          return [`${ek}_${dk}`, {
-            eventKey: ek,
-            divKey: dk,
-            eventName: ev.shortName,
-            label: dv.label,
-            status: store.divisions[storeKey]?.status || 'unknown',
-            isLive: store.liveEvent === ek && store.liveDivision === dk
-          }];
-        })
-      )
-    )
+    allDivisions
   };
   res.json(response);
 });

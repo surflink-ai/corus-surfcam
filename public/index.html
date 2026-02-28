@@ -838,7 +838,7 @@ document.querySelectorAll('.event-btn').forEach(btn => {
 });
 
 // ── Fetch with Razer direct fallback ──
-const SCRAPER_DIRECT = 'http://100.64.217.14:3810';
+const SCRAPER_DIRECT = 'https://variation-rules-corp-teaching.trycloudflare.com';
 let useDirectScraper = false; // Auto-detect: if Vercel proxy fails, try Razer directly
 
 async function apiFetch(path) {
@@ -884,7 +884,8 @@ function render() {
   if (!data) return;
 
   const hasLive = !!data.liveHeat;
-  document.getElementById('livePill').style.display = hasLive ? 'flex' : 'none';
+  const isFiltered = data.isFiltered;
+  document.getElementById('livePill').style.display = hasLive && !isFiltered ? 'flex' : 'none';
 
   // Update drawer title based on current event
   const eventName = data.event || 'Barbados Surf Pro';

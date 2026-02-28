@@ -146,7 +146,7 @@ async function fetchWSLData() {
 }
 
 // Puppeteer scraper on Razer (real-time JS-rendered data)
-const PUPPETEER_BASE = 'http://100.64.217.14:3810';
+const PUPPETEER_BASE = 'https://variation-rules-corp-teaching.trycloudflare.com';
 
 async function fetchPuppeteerData(query) {
   try {
@@ -225,7 +225,7 @@ app.get('/api/live', async (req, res) => {
 });
 
 // Proxy new scraper endpoints
-const SCRAPER_BASE = 'http://100.64.217.14:3810';
+const SCRAPER_BASE = 'https://variation-rules-corp-teaching.trycloudflare.com';
 
 app.get('/api/events', async (req, res) => {
   try {
