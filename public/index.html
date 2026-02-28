@@ -683,12 +683,34 @@ let drawerOpen = false;
       }, 30000);
     }
 
-    video.addEventListener('playing', () => { log('Playing'); layer.style.background = 'none'; });
+    let lastTime = 0;
+    let stallCount = 0;
+    let isOffline = false;
+
+    video.addEventListener('playing', () => { log('Playing'); layer.style.background = 'none'; lastTime = video.currentTime; stallCount = 0; isOffline = false; });
     video.addEventListener('error', (e) => { log('Error: ' + (video.error?.message || e)); showOffline(); });
     video.play().catch(e => { log('Play err: ' + e); showOffline(); });
 
-    // If no data after 8s, assume offline
-    setTimeout(() => { if (video.readyState < 2) showOffline(); }, 8000);
+    // If no data after 6s on load, assume offline
+    setTimeout(() => { if (video.readyState < 2) showOffline(); }, 6000);
+
+    // Detect stream stall — if currentTime hasn't moved in 5s, stream died
+    setInterval(() => {
+      if (isOffline) return;
+      if (video.paused || video.readyState < 2) return;
+      if (video.currentTime === lastTime) {
+        stallCount++;
+        log('Stall detected (' + stallCount + ')');
+        if (stallCount >= 2) { // ~4s of no movement
+          log('Stream stalled — showing offline');
+          showOffline();
+          isOffline = true;
+        }
+      } else {
+        stallCount = 0;
+      }
+      lastTime = video.currentTime;
+    }, 2000);
 
     document.addEventListener('click', () => { video.muted = false; }, { once: true });
 
