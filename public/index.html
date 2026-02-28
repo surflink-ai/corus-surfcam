@@ -837,14 +837,34 @@ document.querySelectorAll('.event-btn').forEach(btn => {
   });
 });
 
-// ── Fetch ──
+// ── Fetch with Razer direct fallback ──
+const SCRAPER_DIRECT = 'http://100.64.217.14:3810';
+let useDirectScraper = false; // Auto-detect: if Vercel proxy fails, try Razer directly
+
+async function apiFetch(path) {
+  // Try Vercel proxy first
+  if (!useDirectScraper) {
+    try {
+      const res = await fetch(path);
+      const d = await res.json();
+      if (!d.error) return d;
+    } catch {}
+  }
+  // Fallback: direct to Razer (works if on Tailscale)
+  try {
+    const res = await fetch(`${SCRAPER_DIRECT}${path}`, { signal: AbortSignal.timeout(3000) });
+    const d = await res.json();
+    if (!d.error) { useDirectScraper = true; return d; }
+  } catch {}
+  return null;
+}
+
 async function fetchData() {
   try {
-    let url = '/api/live';
-    if (selectedEvent !== 'auto') url += `?event=${selectedEvent}`;
-    const res = await fetch(url);
-    data = await res.json();
-    render();
+    let path = '/api/live';
+    if (selectedEvent !== 'auto') path += `?event=${selectedEvent}`;
+    const d = await apiFetch(path);
+    if (d) { data = d; render(); }
   } catch(e) {
     console.error(e);
     const el = document.getElementById('msAthletes');
@@ -854,9 +874,8 @@ async function fetchData() {
 
 async function fetchStats() {
   try {
-    const res = await fetch('/api/stats');
-    statsData = await res.json();
-    renderDrawerStats();
+    const d = await apiFetch('/api/stats');
+    if (d) { statsData = d; renderDrawerStats(); }
   } catch(e) { console.error('Stats fetch failed:', e); }
 }
 
@@ -1081,9 +1100,9 @@ function renderDrawerRounds() {
   // Fetch rounds from the rounds API for current event/division
   const eventKey = data.liveEvent || 'qs6000';
   const divKey = data.liveDivision || 'men';
-  fetch(`/api/rounds?event=${eventKey}&division=${divKey}`)
-    .then(r => r.json())
+  apiFetch(`/api/rounds?event=${eventKey}&division=${divKey}`)
     .then(roundData => {
+      if (!roundData) { el.innerHTML = '<div class="empty-state"><div class="empty-state-text">Scraper unavailable</div></div>'; return; }
       if (!roundData.roundInfo?.length && !roundData.heats?.length) {
         el.innerHTML = '<div class="empty-state"><div class="empty-state-text">No round info available</div></div>';
         return;
