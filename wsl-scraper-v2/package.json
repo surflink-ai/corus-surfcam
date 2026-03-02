@@ -1,0 +1,12 @@
+{
+  "name": "wsl-scraper-v2",
+  "version": "2.0.0",
+  "description": "WSL live score scraper — HTTP + cheerio, no Puppeteer",
+  "main": "index.js",
+  "scripts": { "start": "node index.js" },
+  "dependencies": {
+    "cheerio": "^1.0.0",
+    "express": "^4.18.0",
+    "cors": "^2.8.5"
+  }
+}

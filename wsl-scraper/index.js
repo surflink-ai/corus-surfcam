@@ -537,10 +537,39 @@ app.get('/health', (req, res) => {
 process.on('uncaughtException', (err) => console.error('Uncaught:', err.message));
 process.on('unhandledRejection', (err) => console.error('Unhandled:', err.message || err));
 
+// ── WATCHDOG: auto-reinit if data goes stale ──
+async function watchdog() {
+  const age = Date.now() - store.lastUpdate;
+  if (store.lastUpdate > 0 && age > 90_000) { // 90 seconds stale
+    console.error(`[watchdog] Data stale for ${Math.round(age/1000)}s — reinitializing browser`);
+    scraping = false; // unlock
+    try {
+      if (browser) await browser.close().catch(() => {});
+    } catch {}
+    try {
+      await initBrowser();
+      console.log('[watchdog] Browser reinitialized successfully');
+    } catch (err) {
+      console.error('[watchdog] Reinit failed:', err.message);
+      // Try again in 30s
+      setTimeout(async () => {
+        try {
+          if (browser) await browser.close().catch(() => {});
+          await initBrowser();
+          console.log('[watchdog] Retry reinit succeeded');
+        } catch (e) {
+          console.error('[watchdog] Retry also failed:', e.message);
+        }
+      }, 30_000);
+    }
+  }
+}
+
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`[server] WSL Multi-Event Scraper on port ${PORT}`);
   initBrowser().then(() => {
     scrapeAll();
     setInterval(scrapeAll, 8_000); // Live heat every 8s, one division's heats per cycle
+    setInterval(watchdog, 30_000); // Check for stale data every 30s
   }).catch(err => console.error('[server] Browser init failed:', err.message));
 });
